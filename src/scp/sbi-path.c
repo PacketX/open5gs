@@ -70,6 +70,7 @@ int scp_sbi_open(void)
     if (nrf_client && !next_scp) {
 
         /* Setup Subscription-Data */
+        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_SEPP, NULL);
         ogs_sbi_subscription_spec_add(OpenAPI_nf_type_AMF, NULL);
         ogs_sbi_subscription_spec_add(OpenAPI_nf_type_AUSF, NULL);
         ogs_sbi_subscription_spec_add(OpenAPI_nf_type_BSF, NULL);

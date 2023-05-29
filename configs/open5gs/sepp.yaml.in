@@ -259,29 +259,30 @@ sepp:
       - addr: 127.0.2.10
         port: 7777
 
-#  <Next hop SCP>
 #
-#  o SBI Client(http://127.0.2.10:7777)
+#  <SBI Client>>
+#
+#  o SBI Client(http://127.0.1.10:7777)
 #  sbi:
 #    client:
 #      no_tls: true
-#  next_sepp:
+#  scp:
 #    sbi:
-#      addr: 127.0.2.10
+#      addr: 127.0.1.10
 #      port: 7777
 #
-#  o SBI Client(https://127.0.2.10:443, https://[::1]:443) without verification
+#  o SBI Client(https://127.0.1.10:443, https://[::1]:443) without verification
 #  sbi:
 #    client:
 #      no_verify: true
 #      key: /etc/open5gs/tls/amf.key
 #      cert: /etc/open5gs/tls/amf.crt
-#  next_sepp:
+#  scp:
 #    sbi:
-#      - addr: 127.0.2.10
+#      - addr: 127.0.1.10
 #      - addr: ::1
 #
-#  o SBI Client(https://sepp.open5gs.org:443)
+#  o SBI Client(https://scp.open5gs.org:443)
 #    Use the specified certificate while verifying the server
 #
 #  sbi:
@@ -289,20 +290,20 @@ sepp:
 #      cacert: /etc/open5gs/tls/ca.crt
 #      key: /etc/open5gs/tls/amf.key
 #      cert: /etc/open5gs/tls/amf.crt
-#  next_sepp:
+#  scp:
 #    sbi:
-#      - name: sepp.open5gs.org
+#      - name: scp.open5gs.org
 #
 #  o SBI Client(http://[fd69:f21d:873c:fb::1]:80)
-#    If prefer_ipv4 is true, http://127.0.2.10:80 is selected.
+#    If prefer_ipv4 is true, http://127.0.1.10:80 is selected.
 #
 #  sbi:
 #    client:
 #      no_tls: true
-#  next_sepp:
+#  scp:
 #    sbi:
 #      addr:
-#        - 127.0.2.10
+#        - 127.0.1.10
 #        - fd69:f21d:873c:fb::1
 #
 #  o SBI Option (Default)
@@ -312,9 +313,9 @@ sepp:
 #  sbi:
 #    client:
 #      no_tls: true
-#  next_sepp:
+#  scp:
 #    sbi:
-#      addr: 127.0.2.10
+#      addr: 127.0.1.10
 #      option:
 #        tcp_nodelay: false
 #        so_linger:
@@ -322,6 +323,10 @@ sepp:
 #          l_linger: 10
 #
 #
+scp:
+    sbi:
+      - addr: 127.0.1.10
+        port: 7777
 
 #
 #  <SBI Client>>
@@ -382,12 +387,12 @@ sepp:
 #          l_onoff: true
 #          l_linger: 10
 #
-nrf:
-    sbi:
-      - addr:
-          - 127.0.0.10
-          - ::1
-        port: 7777
+#nrf:
+#    sbi:
+#      - addr:
+#          - 127.0.0.10
+#          - ::1
+#        port: 7777
 
 #
 #  o Disable use of IPv4 addresses (only IPv6)

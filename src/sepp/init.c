@@ -32,7 +32,7 @@ int sepp_initialize(void)
     ogs_sbi_context_init(OpenAPI_nf_type_SEPP);
     sepp_context_init();
 
-    rv = ogs_sbi_context_parse_config("sepp", "nrf", "next_sepp");
+    rv = ogs_sbi_context_parse_config("sepp", "nrf", "scp");
     if (rv != OGS_OK) return rv;
 
     rv = sepp_context_parse_config();

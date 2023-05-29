@@ -31,8 +31,7 @@ static void copy_request(
 
 int sepp_sbi_open(void)
 {
-    ogs_sbi_nf_instance_t *nf_instance = NULL, *nrf_instance = NULL;
-    ogs_sbi_client_t *nrf_client = NULL, *next_sepp = NULL;
+    ogs_sbi_nf_instance_t *nf_instance = NULL;
 
     /* Initialize SELF NF instance */
     nf_instance = ogs_sbi_self()->nf_instance;
@@ -42,45 +41,10 @@ int sepp_sbi_open(void)
     /* Build NF instance information. It will be transmitted to NRF. */
     ogs_sbi_nf_instance_build_default(nf_instance);
 
-    /*
-     * If the SEPP is running in Model D,
-     * it can send NFRegister/NFStatusSubscribe messages to the NRF.
-     */
-    nrf_instance = ogs_sbi_self()->nrf_instance;
-    nrf_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->nrf_instance);
-
-    if (nrf_client) {
-
-        /* Initialize NRF NF Instance */
-        if (nrf_instance)
-            ogs_sbi_nf_fsm_init(nrf_instance);
-    }
-
-    /* Check if Next-SEPP's client */
-#if 0
-    if (ogs_sbi_self()->discovery_config.delegated ==
-            OGS_SBI_DISCOVERY_DELEGATED_AUTO) {
-        next_sepp = NF_INSTANCE_CLIENT(ogs_sbi_self()->sepp_instance);
-    } else if (ogs_sbi_self()->discovery_config.delegated ==
-            OGS_SBI_DISCOVERY_DELEGATED_YES) {
-        next_sepp = NF_INSTANCE_CLIENT(ogs_sbi_self()->sepp_instance);
-        ogs_assert(next_sepp);
-    }
-#endif
-
-    /* If the SEPP has an NRF client and does not delegate to Next-SEPP */
-    if (nrf_client && !next_sepp) {
-
-        /* Setup Subscription-Data */
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_AMF, NULL);
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_AUSF, NULL);
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_BSF, NULL);
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_NSSF, NULL);
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_PCF, NULL);
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_SMF, NULL);
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_UDM, NULL);
-        ogs_sbi_subscription_spec_add(OpenAPI_nf_type_UDR, NULL);
-    }
+    /* Initialize NRF NF Instance */
+    nf_instance = ogs_sbi_self()->nrf_instance;
+    if (nf_instance)
+        ogs_sbi_nf_fsm_init(nf_instance);
 
     if (ogs_sbi_server_start_all(request_handler) != OGS_OK)
         return OGS_ERROR;
