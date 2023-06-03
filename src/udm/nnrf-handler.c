@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2023 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -54,6 +54,7 @@ void udm_nnrf_handle_nf_discover(
     ogs_nnrf_disc_handle_nf_discover_search_result(SearchResult);
 
     nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
+                    &ogs_sbi_self()->nf_instance_list,
                     target_nf_type, requester_nf_type, discovery_option);
     if (!nf_instance) {
         ogs_error("(NF discover) No [%s:%s]",

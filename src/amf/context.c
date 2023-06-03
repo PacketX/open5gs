@@ -2169,6 +2169,7 @@ void amf_sbi_select_nf(
     switch(sbi_object->type) {
     case OGS_SBI_OBJ_UE_TYPE:
         nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
+                        &ogs_sbi_self()->nf_instance_list,
                         target_nf_type, requester_nf_type, discovery_option);
         if (nf_instance)
             OGS_SBI_SETUP_NF_INSTANCE(

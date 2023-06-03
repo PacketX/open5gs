@@ -367,7 +367,7 @@ int ogs_sbi_context_parse_hnet_config(ogs_yaml_iter_t *root_iter);
 
 bool ogs_sbi_nf_service_is_available(const char *name);
 
-ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_add(void);
+ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_add(ogs_list_t *list);
 void ogs_sbi_nf_instance_set_id(ogs_sbi_nf_instance_t *nf_instance, char *id);
 void ogs_sbi_nf_instance_set_type(
         ogs_sbi_nf_instance_t *nf_instance, OpenAPI_nf_type_e nf_type);
@@ -378,10 +378,12 @@ void ogs_sbi_nf_instance_add_allowed_nf_type(
 bool ogs_sbi_nf_instance_is_allowed_nf_type(
         ogs_sbi_nf_instance_t *nf_instance, OpenAPI_nf_type_e allowed_nf_type);
 void ogs_sbi_nf_instance_clear(ogs_sbi_nf_instance_t *nf_instance);
-void ogs_sbi_nf_instance_remove(ogs_sbi_nf_instance_t *nf_instance);
-void ogs_sbi_nf_instance_remove_all(void);
-ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find(char *id);
+void ogs_sbi_nf_instance_remove(
+        ogs_list_t *list, ogs_sbi_nf_instance_t *nf_instance);
+void ogs_sbi_nf_instance_remove_all(ogs_list_t *list);
+ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find(ogs_list_t *list, char *id);
 ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find_by_discovery_param(
+        ogs_list_t *list,
         OpenAPI_nf_type_e nf_type,
         OpenAPI_nf_type_e requester_nf_type,
         ogs_sbi_discovery_option_t *discovery_option);
@@ -438,7 +440,8 @@ int ogs_sbi_client_default_port(void);
         \
         if ((__cTX).nf_instance) { \
             ogs_warn("NF Instance updated [%s]", (__nFInstance)->id); \
-            ogs_sbi_nf_instance_remove((__cTX).nf_instance); \
+            ogs_sbi_nf_instance_remove( \
+                    &ogs_sbi_self()->nf_instance_list, (__cTX).nf_instance); \
         } \
         \
         OGS_OBJECT_REF(__nFInstance); \

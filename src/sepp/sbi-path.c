@@ -206,6 +206,7 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
         else {
             if (discovery_option && discovery_option->target_nf_instance_id) {
                 nf_instance = ogs_sbi_nf_instance_find(
+                        &ogs_sbi_self()->nf_instance_list,
                         discovery_option->target_nf_instance_id);
                 if (nf_instance) {
                     client = ogs_sbi_client_find_by_service_type(
