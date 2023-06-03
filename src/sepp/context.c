@@ -38,6 +38,8 @@ void sepp_context_init(void)
 
     ogs_log_install_domain(&__sepp_log_domain, "sepp", ogs_core()->log.level);
 
+    ogs_list_init(&self.peer_list);
+
 #define MAX_NUM_OF_SEPP_ASSOC 8
     max_num_of_sepp_assoc = ogs_app()->max.ue * MAX_NUM_OF_SEPP_ASSOC;
 
@@ -49,6 +51,8 @@ void sepp_context_init(void)
 void sepp_context_final(void)
 {
     ogs_assert(context_initialized == 1);
+
+    ogs_sbi_nf_instance_remove_all(&sepp_self()->peer_list);
 
     sepp_assoc_remove_all();
 
@@ -100,6 +104,107 @@ int sepp_context_parse_config(void)
                     /* handle config in sbi library */
                 } else if (!strcmp(sepp_key, "discovery")) {
                     /* handle config in sbi library */
+                } else if (!strcmp(sepp_key, "peer")) {
+                    ogs_yaml_iter_t peer_array, peer_iter;
+                    ogs_yaml_iter_recurse(&sepp_iter, &peer_array);
+                    do {
+                        ogs_sbi_nf_instance_t *nf_instance = NULL;
+                        ogs_sbi_client_t *client = NULL;
+                        ogs_sockaddr_t *addr = NULL;
+                        int family = AF_UNSPEC;
+                        int i, num = 0;
+                        const char *hostname[OGS_MAX_NUM_OF_HOSTNAME];
+                        uint16_t port = ogs_sbi_client_default_port();
+
+                        if (ogs_yaml_iter_type(&peer_array) ==
+                                YAML_MAPPING_NODE) {
+                            memcpy(&peer_iter, &peer_array,
+                                    sizeof(ogs_yaml_iter_t));
+                        } else if (ogs_yaml_iter_type(&peer_array) ==
+                            YAML_SEQUENCE_NODE) {
+                            if (!ogs_yaml_iter_next(&peer_array))
+                                break;
+                            ogs_yaml_iter_recurse(&peer_array, &peer_iter);
+                        } else if (ogs_yaml_iter_type(&peer_array) ==
+                                YAML_SCALAR_NODE) {
+                            break;
+                        } else
+                            ogs_assert_if_reached();
+
+                        while (ogs_yaml_iter_next(&peer_iter)) {
+                            const char *peer_key =
+                                ogs_yaml_iter_key(&peer_iter);
+                            ogs_assert(peer_key);
+                            if (!strcmp(peer_key, "family")) {
+                                const char *v = ogs_yaml_iter_value(&peer_iter);
+                                if (v) family = atoi(v);
+                                if (family != AF_UNSPEC &&
+                                    family != AF_INET && family != AF_INET6) {
+                                    ogs_warn("Ignore family(%d) : "
+                                        "AF_UNSPEC(%d), "
+                                        "AF_INET(%d), AF_INET6(%d) ",
+                                        family, AF_UNSPEC, AF_INET, AF_INET6);
+                                    family = AF_UNSPEC;
+                                }
+                            } else if (!strcmp(peer_key, "addr") ||
+                                    !strcmp(peer_key, "name")) {
+                                ogs_yaml_iter_t hostname_iter;
+                                ogs_yaml_iter_recurse(&peer_iter,
+                                        &hostname_iter);
+                                ogs_assert(ogs_yaml_iter_type(&hostname_iter) !=
+                                    YAML_MAPPING_NODE);
+
+                                do {
+                                    if (ogs_yaml_iter_type(&hostname_iter) ==
+                                            YAML_SEQUENCE_NODE) {
+                                        if (!ogs_yaml_iter_next(&hostname_iter))
+                                            break;
+                                    }
+
+                                    ogs_assert(num < OGS_MAX_NUM_OF_HOSTNAME);
+                                    hostname[num++] =
+                                        ogs_yaml_iter_value(&hostname_iter);
+                                } while (
+                                    ogs_yaml_iter_type(&hostname_iter) ==
+                                        YAML_SEQUENCE_NODE);
+                            } else if (!strcmp(peer_key, "port")) {
+                                const char *v = ogs_yaml_iter_value(&peer_iter);
+                                if (v) port = atoi(v);
+                            } else if (!strcmp(peer_key, "advertise")) {
+                                /* Nothing in client */
+                            } else
+                                ogs_warn("unknown key `%s`", peer_key);
+                        }
+
+                        addr = NULL;
+                        for (i = 0; i < num; i++) {
+                            rv = ogs_addaddrinfo(&addr,
+                                    family, hostname[i], port, 0);
+                            ogs_assert(rv == OGS_OK);
+                        }
+
+                        ogs_filter_ip_version(&addr,
+                                ogs_app()->parameter.no_ipv4,
+                                ogs_app()->parameter.no_ipv6,
+                                ogs_app()->parameter.prefer_ipv4);
+
+                        if (addr == NULL) continue;
+
+                        nf_instance = ogs_sbi_nf_instance_add(
+                                &sepp_self()->peer_list);
+                        ogs_assert(nf_instance);
+                        ogs_sbi_nf_instance_set_type(
+                                nf_instance, OpenAPI_nf_type_SEPP);
+
+                        client = ogs_sbi_client_add(
+                                    ogs_sbi_client_default_scheme(), addr);
+                        ogs_assert(client);
+                        OGS_SBI_SETUP_CLIENT(nf_instance, client);
+
+                        ogs_freeaddrinfo(addr);
+
+                    } while (ogs_yaml_iter_type(&peer_array) ==
+                            YAML_SEQUENCE_NODE);
                 } else if (!strcmp(sepp_key, "info")) {
                     ogs_sbi_nf_instance_t *nf_instance = NULL;
                     ogs_sbi_nf_info_t *nf_info = NULL;
