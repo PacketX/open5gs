@@ -31,6 +31,13 @@ void sepp_state_final(ogs_fsm_t *s, sepp_event_t *e);
 void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e);
 void sepp_state_exception(ogs_fsm_t *s, sepp_event_t *e);
 
+void sepp_n32_state_initial(ogs_fsm_t *s, sepp_event_t *e);
+void sepp_n32_state_final(ogs_fsm_t *s, sepp_event_t *e);
+void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e);
+void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e);
+void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e);
+void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e);
+
 #define sepp_sm_debug(__pe) \
     ogs_debug("%s(): %s", __func__, sepp_event_get_name(__pe))
 

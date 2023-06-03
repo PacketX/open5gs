@@ -19,6 +19,8 @@ libsepp_sources = files('''
     context.c
     event.c
 
+    n32-sm.c
+
     sbi-path.c
     sepp-sm.c
 
