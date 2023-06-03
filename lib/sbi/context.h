@@ -312,14 +312,6 @@ typedef struct ogs_sbi_scp_info_s {
 
 typedef struct ogs_sbi_sepp_info_s {
     ogs_port_t http, https;
-
-    int num_of_domain;
-    struct {
-        char *name;
-        char *fqdn;
-        ogs_port_t http, https;
-    } domain[OGS_MAX_NUM_OF_SCP_DOMAIN];
-
 } ogs_sbi_sepp_info_t;
 
 typedef struct ogs_sbi_amf_info_s {

@@ -25,9 +25,11 @@ static void free_nf_service(OpenAPI_nf_service_t *NFService);
 static OpenAPI_smf_info_t *build_smf_info(ogs_sbi_nf_info_t *nf_info);
 static OpenAPI_amf_info_t *build_amf_info(ogs_sbi_nf_info_t *nf_info);
 static OpenAPI_scp_info_t *build_scp_info(ogs_sbi_nf_info_t *nf_info);
+static OpenAPI_sepp_info_t *build_sepp_info(ogs_sbi_nf_info_t *nf_info);
 static void free_smf_info(OpenAPI_smf_info_t *SmfInfo);
 static void free_amf_info(OpenAPI_amf_info_t *AmfInfo);
 static void free_scp_info(OpenAPI_scp_info_t *ScpInfo);
+static void free_sepp_info(OpenAPI_sepp_info_t *SeppInfo);
 
 ogs_sbi_request_t *ogs_nnrf_nfm_build_register(void)
 {
@@ -353,6 +355,14 @@ OpenAPI_nf_profile_t *ogs_nnrf_nfm_build_nf_profile(
         ogs_assert(NFProfile->scp_info);
     }
 
+    /* There can only be one SEPP info, not multiple. */
+    nf_info = ogs_sbi_nf_info_find(
+            &nf_instance->nf_info_list, OpenAPI_nf_type_SEPP);
+    if (nf_info) {
+        NFProfile->sepp_info = build_sepp_info(nf_info);
+        ogs_assert(NFProfile->sepp_info);
+    }
+
     return NFProfile;
 }
 
@@ -432,6 +442,9 @@ void ogs_nnrf_nfm_free_nf_profile(OpenAPI_nf_profile_t *NFProfile)
 
     if (NFProfile->scp_info)
         free_scp_info(NFProfile->scp_info);
+
+    if (NFProfile->sepp_info)
+        free_sepp_info(NFProfile->sepp_info);
 
     ogs_free(NFProfile);
 }
@@ -1186,6 +1199,56 @@ static OpenAPI_scp_info_t *build_scp_info(ogs_sbi_nf_info_t *nf_info)
     return ScpInfo;
 }
 
+static OpenAPI_sepp_info_t *build_sepp_info(ogs_sbi_nf_info_t *nf_info)
+{
+    OpenAPI_sepp_info_t *SeppInfo = NULL;
+    OpenAPI_list_t *PortList = NULL;
+    OpenAPI_map_t *PortMap = NULL;
+
+    ogs_assert(nf_info);
+
+    SeppInfo = ogs_calloc(1, sizeof(*SeppInfo));
+    if (!SeppInfo) {
+        ogs_error("No SeppInfo");
+        return NULL;
+    }
+
+    PortList = OpenAPI_list_create();
+    if (!PortList) {
+        ogs_error("No PortList");
+        free_sepp_info(SeppInfo);
+        return NULL;
+    }
+
+    if (nf_info->sepp.http.presence) {
+        PortMap = OpenAPI_map_create(
+                    (char *)"http", ogs_alloc_double(nf_info->sepp.http.port));
+        if (!PortMap) {
+            ogs_error("No PortMap");
+            free_sepp_info(SeppInfo);
+            return NULL;
+        }
+        OpenAPI_list_add(PortList, PortMap);
+    }
+    if (nf_info->sepp.https.presence) {
+        PortMap = OpenAPI_map_create(
+                    (char *)"https", ogs_alloc_double(nf_info->sepp.https.port));
+        if (!PortMap) {
+            ogs_error("No PortMap");
+            free_sepp_info(SeppInfo);
+            return NULL;
+        }
+        OpenAPI_list_add(PortList, PortMap);
+    }
+
+    if (PortList->count)
+        SeppInfo->sepp_ports = PortList;
+    else
+        OpenAPI_list_free(PortList);
+
+    return SeppInfo;
+}
+
 static void free_smf_info(OpenAPI_smf_info_t *SmfInfo)
 {
     OpenAPI_list_t *sNssaiSmfInfoList = NULL;
@@ -1389,6 +1452,25 @@ static void free_scp_info(OpenAPI_scp_info_t *ScpInfo)
     OpenAPI_list_free(ScpInfo->scp_domain_info_list);
 
     ogs_free(ScpInfo);
+}
+
+static void free_sepp_info(OpenAPI_sepp_info_t *SeppInfo)
+{
+    OpenAPI_map_t *PortMap = NULL;
+    OpenAPI_lnode_t *node = NULL;
+
+    ogs_assert(SeppInfo);
+
+    OpenAPI_list_for_each(SeppInfo->sepp_ports, node) {
+        PortMap = node->data;
+        if (PortMap) {
+            ogs_free(PortMap->value);
+            OpenAPI_map_free(PortMap);
+        }
+    }
+    OpenAPI_list_free(SeppInfo->sepp_ports);
+
+    ogs_free(SeppInfo);
 }
 
 ogs_sbi_request_t *ogs_nnrf_nfm_build_update(void)

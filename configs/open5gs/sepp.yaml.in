@@ -180,48 +180,17 @@ sbi:
 #
 #  <SEPP Information>
 #
-#  o SEPP port number(s) WITHOUT SEPP Domain
-#    - If no SEPP port information is present in ScpInfo or
-#      in ScpDomainInfo for a specific SEPP domain,
-#      the HTTP client shall use the default HTTP port number,
-#      i.e. TCP port 80 for "http" URIs or TCP port 443
-#      for "https" URIs as specified in IETF RFC 7540 [9]
-#      when sending a request to the SEPP within the specific SEPP domain.
+#  o SEPP port number(s) for HTTP and/or HTTPS
+#    - This attribute shall be present if the SEPP uses non-default HTTP and/or
+#      HTTPS ports. When present, it shall contain the HTTP and/or HTTPS ports.
+#
+#  Minimum: 0 Maximum: 65535
+#
 #  sepp:
 #    info:
 #      port:
 #        http: 7777
 #        https: 8888
-#
-#  o SEPP port number(s) WITH SEPP Domain
-#    - If this attribute is present,
-#      it has precedence over the seppPorts attribute of ScpInfo.
-#  sepp:
-#    info:
-#      domain:
-#        - name: SCP_Domain_1
-#          fqdn: sepp.localdomain
-#          port:
-#            http: 7777
-#            https: 8888
-#
-#  o Complex Example
-#  sepp:
-#    info:
-#      port:
-#        http: 7777
-#        https: 8888
-#      domain:
-#        - name: SCP_Domain_1
-#          fqdn: sepp.hplmndomain
-#          port:
-#            http: 3333
-#            https: 4444
-#        - name: SCP_Domain_2
-#          fqdn: sepp.vplmndomain
-#          port:
-#            http: 5555
-#            https: 6666
 #
 #  <For Indirect Communication with Delegated Discovery>
 #
