@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -93,9 +93,7 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
         ogs_timer_start(node->t_establish_interval,
             ogs_app()->time.message.sbi.reconnect_interval);
 
-#if 0
-        ogs_assert(true == ogs_nnrf_nfm_send_nf_register(node));
-#endif
+        ogs_expect(true == sepp_n32c_handshake_send_exchange_capability(node));
         break;
 
     case OGS_FSM_EXIT_SIG:
@@ -114,14 +112,15 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 
                 if (message->res_status == OGS_SBI_HTTP_STATUS_OK) {
 #if 0
-                    ogs_nnrf_nfm_handle_nf_register(node, message);
+                    sepp_n32c_handshake_handle_exchange_capability(node);
 #endif
+
                     OGS_FSM_TRAN(s, &sepp_n32_state_established);
                 } else {
                     ogs_error("[%s] HTTP Response Status Code [%d]",
                             node->fqdn ? node->fqdn : "Unknown",
                             message->res_status);
-                    OGS_FSM_TRAN(s, &ogs_sbi_nf_state_exception);
+                    OGS_FSM_TRAN(s, &sepp_n32_state_exception);
                 }
                 break;
 
@@ -148,9 +147,8 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
             ogs_timer_start(node->t_establish_interval,
                 ogs_app()->time.message.sbi.reconnect_interval);
 
-#if 0
-            ogs_assert(true == ogs_nnrf_nfm_send_nf_register(node));
-#endif
+            ogs_expect(true ==
+                sepp_n32c_handshake_send_exchange_capability(node));
             break;
 
         default:
@@ -185,7 +183,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
     case OGS_FSM_EXIT_SIG:
         ogs_info("[%s] PEER terminated", node->fqdn ? node->fqdn : "Unknown");
 
-        if (!OGS_FSM_CHECK(&node->sm, ogs_sbi_nf_state_exception)) {
+        if (!OGS_FSM_CHECK(&node->sm, sepp_n32_state_exception)) {
 #if 0
             ogs_assert(true ==
                     ogs_nnrf_nfm_send_nf_de_register(node));
@@ -286,7 +284,7 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
             ogs_warn("[%s] Retry establishment with Peer SEPP",
                     node->fqdn ? node->fqdn : "Unknown");
 
-            OGS_FSM_TRAN(s, &ogs_sbi_nf_state_will_register);
+            OGS_FSM_TRAN(s, &sepp_n32_state_handshake);
             break;
 
         default:

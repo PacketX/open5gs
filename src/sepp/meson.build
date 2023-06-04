@@ -21,6 +21,7 @@ libsepp_sources = files('''
     timer.c
 
     n32c-build.c
+    n32c-handler.c
 
     n32-sm.c
 
