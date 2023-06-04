@@ -41,6 +41,19 @@ typedef struct sepp_context_s {
     ogs_list_t          assoc_list;
 } sepp_context_t;
 
+typedef struct sepp_node_s sepp_node_t;
+
+typedef struct sepp_node_s {
+    ogs_lnode_t lnode;
+
+    ogs_fsm_t sm;                           /* A state machine */
+    ogs_timer_t *t_establish_interval;      /* timer to retry
+                                               to establish peer node */
+    char *fqdn;
+
+    void *client;                           /* only used in CLIENT */
+} sepp_node_t;
+
 typedef struct sepp_assoc_s sepp_assoc_t;
 
 typedef struct sepp_assoc_s {
@@ -63,6 +76,10 @@ void sepp_context_final(void);
 sepp_context_t *sepp_self(void);
 
 int sepp_context_parse_config(void);
+
+sepp_node_t *sepp_node_add(void);
+void sepp_node_remove(sepp_node_t *node);
+void sepp_node_remove_all(void);
 
 sepp_assoc_t *sepp_assoc_add(ogs_sbi_stream_t *stream);
 void sepp_assoc_remove(sepp_assoc_t *sess);

@@ -19,22 +19,42 @@
 
 #include "sbi-path.h"
 
+void sepp_n32_fsm_init(sepp_node_t *node)
+{
+    sepp_event_t e;
+
+    ogs_assert(node);
+
+    memset(&e, 0, sizeof(e));
+    e.node = node;
+
+    ogs_fsm_init(&node->sm,
+            sepp_n32_state_initial, sepp_n32_state_final, &e);
+}
+
+void sepp_n32_fsm_fini(sepp_node_t *node)
+{
+    sepp_event_t e;
+
+    ogs_assert(node);
+
+    memset(&e, 0, sizeof(e));
+    e.node = node;
+
+    ogs_fsm_fini(&node->sm, &e);
+}
+
 void sepp_n32_state_initial(ogs_fsm_t *s, sepp_event_t *e)
 {
-    ogs_sbi_nf_instance_t *nf_instance = NULL;
+    sepp_node_t *node = NULL;
 
     ogs_assert(s);
     ogs_assert(e);
 
-    nf_instance = e->h.sbi.data;
-    ogs_assert(nf_instance);
+    node = e->node;
+    ogs_assert(node);
 
-    if (NF_INSTANCE_ID_IS_SELF(nf_instance->id)) {
-        ogs_error("local");
-    } else {
-        /* Peer SEPP */
-        ogs_fatal("Peer");
-    }
+    ogs_fatal("Peer");
 
 #if 0
     nf_instance->t_registration_interval = ogs_timer_add(ogs_app()->timer_mgr,
@@ -47,22 +67,18 @@ void sepp_n32_state_initial(ogs_fsm_t *s, sepp_event_t *e)
 
 void sepp_n32_state_final(ogs_fsm_t *s, sepp_event_t *e)
 {
-    ogs_sbi_nf_instance_t *nf_instance = NULL;
+    sepp_node_t *node = NULL;
 
     ogs_assert(s);
     ogs_assert(e);
 
     sepp_sm_debug(e);
 
-    nf_instance = e->h.sbi.data;
-    ogs_assert(nf_instance);
+    node = e->node;
+    ogs_assert(node);
 
-    if (NF_INSTANCE_ID_IS_SELF(nf_instance->id)) {
-        ogs_error("local");
-    } else {
-        /* Peer SEPP */
-        ogs_fatal("Peer");
-    }
+    /* Peer SEPP */
+    ogs_fatal("Peer");
 
 #if 0
     ogs_timer_delete(nf_instance->t_registration_interval);
@@ -71,7 +87,7 @@ void sepp_n32_state_final(ogs_fsm_t *s, sepp_event_t *e)
 
 void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 {
-    ogs_sbi_nf_instance_t *nf_instance = NULL;
+    sepp_node_t *node = NULL;
     ogs_sbi_message_t *message = NULL;
 
     ogs_assert(s);
@@ -79,8 +95,8 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 
     sepp_sm_debug(e);
 
-    nf_instance = e->h.sbi.data;
-    ogs_assert(nf_instance);
+    node = e->node;
+    ogs_assert(node);
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -163,15 +179,15 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 
 void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
 {
-    ogs_sbi_nf_instance_t *nf_instance = NULL;
+    sepp_node_t *node = NULL;
     ogs_sbi_message_t *message = NULL;
     ogs_assert(s);
     ogs_assert(e);
 
     sepp_sm_debug(e);
 
-    nf_instance = e->h.sbi.data;
-    ogs_assert(nf_instance);
+    node = e->node;
+    ogs_assert(node);
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -297,24 +313,26 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
 #endif
 
     default:
+#if 0
         ogs_error("[%s:%s] Unknown event %s",
                 OpenAPI_nf_type_ToString(nf_instance->nf_type),
                 nf_instance->id ? nf_instance->id : "Undefined",
                 sepp_event_get_name(e));
+#endif
         break;
     }
 }
 
 void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
 {
-    ogs_sbi_nf_instance_t *nf_instance = NULL;
+    sepp_node_t *node = NULL;
     ogs_assert(s);
     ogs_assert(e);
 
     sepp_sm_debug(e);
 
-    nf_instance = e->h.sbi.data;
-    ogs_assert(nf_instance);
+    node = e->node;
+    ogs_assert(node);
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -328,26 +346,27 @@ void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
         break;
 
     default:
+#if 0
         ogs_error("[%s:%s] Unknown event %s",
                 OpenAPI_nf_type_ToString(nf_instance->nf_type),
                 nf_instance->id ? nf_instance->id : "Undefined",
                 sepp_event_get_name(e));
+#endif
         break;
     }
 }
 
 void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
 {
-    ogs_sbi_nf_instance_t *nf_instance = NULL;
+    sepp_node_t *node = NULL;
     ogs_sbi_message_t *message = NULL;
     ogs_assert(s);
     ogs_assert(e);
 
     sepp_sm_debug(e);
 
-    nf_instance = e->h.sbi.data;
-    ogs_assert(nf_instance);
-    ogs_assert(ogs_sbi_self()->nf_instance);
+    node = e->node;
+    ogs_assert(node);
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
@@ -404,10 +423,12 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
 #endif
 
     default:
+#if 0
         ogs_error("[%s:%s] Unknown event %s",
                 OpenAPI_nf_type_ToString(nf_instance->nf_type),
                 nf_instance->id ? nf_instance->id : "Undefined",
                 sepp_event_get_name(e));
+#endif
         break;
     }
 }

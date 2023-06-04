@@ -23,10 +23,12 @@ static sepp_context_t self;
 
 int __sepp_log_domain;
 
+static OGS_POOL(sepp_node_pool, sepp_node_t);
 static OGS_POOL(sepp_assoc_pool, sepp_assoc_t);
 
 static int context_initialized = 0;
 
+static int max_num_of_sepp_node = 0;
 static int max_num_of_sepp_assoc = 0;
 
 void sepp_context_init(void)
@@ -38,12 +40,11 @@ void sepp_context_init(void)
 
     ogs_log_install_domain(&__sepp_log_domain, "sepp", ogs_core()->log.level);
 
-    /* Peer SEPP List */
-    ogs_list_init(&self.peer_list);
+    max_num_of_sepp_node = ogs_app()->pool.nf;
+    ogs_pool_init(&sepp_node_pool, max_num_of_sepp_node);
 
 #define MAX_NUM_OF_SEPP_ASSOC 8
     max_num_of_sepp_assoc = ogs_app()->max.ue * MAX_NUM_OF_SEPP_ASSOC;
-
     ogs_pool_init(&sepp_assoc_pool, max_num_of_sepp_assoc);
 
     context_initialized = 1;
@@ -53,10 +54,12 @@ void sepp_context_final(void)
 {
     ogs_assert(context_initialized == 1);
 
-    ogs_sbi_nf_instance_remove_all(&sepp_self()->peer_list);
+    ogs_sbi_nf_instance_remove_all(&ogs_sbi_self()->nf_instance_list);
 
+    sepp_node_remove_all();
     sepp_assoc_remove_all();
 
+    ogs_pool_final(&sepp_node_pool);
     ogs_pool_final(&sepp_assoc_pool);
 
     context_initialized = 0;
@@ -109,7 +112,7 @@ int sepp_context_parse_config(void)
                     ogs_yaml_iter_t peer_array, peer_iter;
                     ogs_yaml_iter_recurse(&sepp_iter, &peer_array);
                     do {
-                        ogs_sbi_nf_instance_t *nf_instance = NULL;
+                        sepp_node_t *node = NULL;
                         ogs_sbi_client_t *client = NULL;
                         ogs_sockaddr_t *addr = NULL;
                         int family = AF_UNSPEC;
@@ -191,16 +194,13 @@ int sepp_context_parse_config(void)
 
                         if (addr == NULL) continue;
 
-                        nf_instance = ogs_sbi_nf_instance_add(
-                                &sepp_self()->peer_list);
-                        ogs_assert(nf_instance);
-                        ogs_sbi_nf_instance_set_type(
-                                nf_instance, OpenAPI_nf_type_SEPP);
+                        node = sepp_node_add();
+                        ogs_assert(node);
 
                         client = ogs_sbi_client_add(
                                     ogs_sbi_client_default_scheme(), addr);
                         ogs_assert(client);
-                        OGS_SBI_SETUP_CLIENT(nf_instance, client);
+                        OGS_SBI_SETUP_CLIENT(node, client);
 
                         ogs_freeaddrinfo(addr);
 
@@ -265,6 +265,43 @@ int sepp_context_parse_config(void)
     if (rv != OGS_OK) return rv;
 
     return OGS_OK;
+}
+
+sepp_node_t *sepp_node_add(void)
+{
+    sepp_node_t *node = NULL;
+
+    ogs_pool_alloc(&sepp_node_pool, &node);
+    if (!node) {
+        ogs_error("Maximum number of nodeiation[%d] reached",
+                    max_num_of_sepp_node);
+        return NULL;
+    }
+    memset(node, 0, sizeof *node);
+
+    ogs_list_add(&self.peer_list, node);
+
+    return node;
+}
+
+void sepp_node_remove(sepp_node_t *node)
+{
+    ogs_assert(node);
+
+    ogs_list_remove(&self.peer_list, node);
+
+    if (node->client)
+        ogs_sbi_client_remove(node->client);
+
+    ogs_pool_free(&sepp_node_pool, node);
+}
+
+void sepp_node_remove_all(void)
+{
+    sepp_node_t *node = NULL, *next_node = NULL;
+
+    ogs_list_for_each_safe(&self.peer_list, next_node, node)
+        sepp_node_remove(node);
 }
 
 sepp_assoc_t *sepp_assoc_add(ogs_sbi_stream_t *stream)
