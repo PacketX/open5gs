@@ -30,7 +30,6 @@ typedef struct sepp_node_s sepp_node_t;
 
 typedef struct sepp_event_s {
     ogs_event_t h;
-    sepp_node_t *node;
 } sepp_event_t;
 
 OGS_STATIC_ASSERT(OGS_EVENT_SIZE >= sizeof(sepp_event_t));

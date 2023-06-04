@@ -17,22 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SEPP_SBI_PATH_H
-#define SEPP_SBI_PATH_H
-
 #include "n32c-build.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+ogs_sbi_request_t *sepp_n32c_handshake_build_exchange_capability(
+        sepp_node_t *node)
+{
+    ogs_sbi_message_t message;
+    ogs_sbi_request_t *request = NULL;
 
-int sepp_sbi_open(void);
-void sepp_sbi_close(void);
+    ogs_assert(node);
 
-bool sepp_n32c_handshake_send_exchange_capability(sepp_node_t *node);
+    memset(&message, 0, sizeof(message));
+    message.h.method = (char *)OGS_SBI_HTTP_METHOD_POST;
+    message.h.service.name = (char *)OGS_SBI_SERVICE_NAME_N32C_HANDSHAKE;
+    message.h.api.version = (char *)OGS_SBI_API_V1;
+    message.h.resource.component[0] =
+        (char *)OGS_SBI_RESOURCE_NAME_EXCHANGE_CAPABILITY;
 
-#ifdef __cplusplus
+    request = ogs_sbi_build_request(&message);
+    ogs_expect(request);
+
+    return request;
 }
-#endif
-
-#endif /* SEPP_SBI_PATH_H */

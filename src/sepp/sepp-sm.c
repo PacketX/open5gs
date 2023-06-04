@@ -230,7 +230,7 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
 
         switch(e->h.timer_id) {
         case SEPP_TIMER_PEER_ESTABLISH:
-            node = e->node;
+            node = e->h.sbi.data;
             ogs_assert(node);
 
             ogs_fsm_dispatch(&node->sm, e);

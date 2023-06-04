@@ -20,6 +20,8 @@ libsepp_sources = files('''
     event.c
     timer.c
 
+    n32c-build.c
+
     n32-sm.c
 
     sbi-path.c

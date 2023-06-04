@@ -17,22 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SEPP_SBI_PATH_H
-#define SEPP_SBI_PATH_H
+#ifndef SEPP_N32C_BUILD_H
+#define SEPP_N32C_BUILD_H
 
-#include "n32c-build.h"
+#include "context.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int sepp_sbi_open(void);
-void sepp_sbi_close(void);
-
-bool sepp_n32c_handshake_send_exchange_capability(sepp_node_t *node);
+ogs_sbi_request_t *sepp_n32c_handshake_build_exchange_capability(
+        sepp_node_t *node);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SEPP_SBI_PATH_H */
+#endif /* SEPP_N32C_BUILD_H */

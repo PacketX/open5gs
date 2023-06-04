@@ -63,6 +63,34 @@ void sepp_sbi_close(void)
     ogs_sbi_server_stop_all();
 }
 
+bool sepp_n32c_handshake_send_exchange_capability(sepp_node_t *node)
+{
+    bool rc;
+    ogs_sbi_request_t *request = NULL;
+    ogs_sbi_client_t *client = NULL;
+
+    ogs_assert(node);
+    client = node->client;
+    if (!client) {
+        ogs_error("No Client");
+        return false;
+    }
+
+    request = sepp_n32c_handshake_build_exchange_capability(node);
+    if (!request) {
+        ogs_error("sepp_n32c_handshake_build_exchange_capability() failed");
+        return false;
+    }
+
+    rc = ogs_sbi_client_send_request(
+            client, ogs_sbi_client_handler, request, node);
+    ogs_expect(rc == true);
+
+    ogs_sbi_request_free(request);
+
+    return rc;
+}
+
 static int request_handler(ogs_sbi_request_t *request, void *data)
 {
     int rv;

@@ -26,7 +26,7 @@ void sepp_n32_fsm_init(sepp_node_t *node)
     ogs_assert(node);
 
     memset(&e, 0, sizeof(e));
-    e.node = node;
+    e.h.sbi.data = node;
 
     ogs_fsm_init(&node->sm, sepp_n32_state_initial, sepp_n32_state_final, &e);
 }
@@ -38,7 +38,7 @@ void sepp_n32_fsm_fini(sepp_node_t *node)
     ogs_assert(node);
 
     memset(&e, 0, sizeof(e));
-    e.node = node;
+    e.h.sbi.data = node;
 
     ogs_fsm_fini(&node->sm, &e);
 }
@@ -50,7 +50,7 @@ void sepp_n32_state_initial(ogs_fsm_t *s, sepp_event_t *e)
     ogs_assert(s);
     ogs_assert(e);
 
-    node = e->node;
+    node = e->h.sbi.data;
     ogs_assert(node);
 
     node->t_establish_interval = ogs_timer_add(ogs_app()->timer_mgr,
@@ -69,7 +69,7 @@ void sepp_n32_state_final(ogs_fsm_t *s, sepp_event_t *e)
 
     sepp_sm_debug(e);
 
-    node = e->node;
+    node = e->h.sbi.data;
     ogs_assert(node);
 
     ogs_timer_delete(node->t_establish_interval);
@@ -85,7 +85,7 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 
     sepp_sm_debug(e);
 
-    node = e->node;
+    node = e->h.sbi.data;
     ogs_assert(node);
 
     switch (e->h.id) {
@@ -175,7 +175,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
 
     sepp_sm_debug(e);
 
-    node = e->node;
+    node = e->h.sbi.data;
     ogs_assert(node);
 
     switch (e->h.id) {
@@ -315,7 +315,7 @@ void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
 
     sepp_sm_debug(e);
 
-    node = e->node;
+    node = e->h.sbi.data;
     ogs_assert(node);
 
     switch (e->h.id) {
@@ -344,7 +344,7 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
 
     sepp_sm_debug(e);
 
-    node = e->node;
+    node = e->h.sbi.data;
     ogs_assert(node);
 
     switch (e->h.id) {
