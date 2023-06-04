@@ -57,7 +57,7 @@ static void timer_send_event(int timer_id, void *data)
         e = sepp_event_new(OGS_EVENT_SBI_TIMER);
         ogs_assert(e);
         e->h.timer_id = timer_id;
-        e->h.sbi.data = data;
+        e->node = data;
         break;
     default:
         ogs_fatal("Unknown timer id[%d]", timer_id);

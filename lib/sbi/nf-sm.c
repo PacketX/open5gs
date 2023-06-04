@@ -124,7 +124,7 @@ void ogs_sbi_nf_state_will_register(ogs_fsm_t *s, ogs_event_t *e)
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
         ogs_timer_start(nf_instance->t_registration_interval,
-            ogs_app()->time.message.sbi.nf_register_interval);
+            ogs_app()->time.message.sbi.reconnect_interval);
 
         ogs_assert(true == ogs_nnrf_nfm_send_nf_register(nf_instance));
         break;
@@ -176,7 +176,7 @@ void ogs_sbi_nf_state_will_register(ogs_fsm_t *s, ogs_event_t *e)
                     NF_INSTANCE_ID(ogs_sbi_self()->nf_instance));
 
             ogs_timer_start(nf_instance->t_registration_interval,
-                ogs_app()->time.message.sbi.nf_register_interval);
+                ogs_app()->time.message.sbi.reconnect_interval);
 
             ogs_assert(true == ogs_nnrf_nfm_send_nf_register(nf_instance));
             break;
@@ -386,7 +386,7 @@ void ogs_sbi_nf_state_exception(ogs_fsm_t *s, ogs_event_t *e)
         if (NF_INSTANCE_TYPE_IS_NRF(nf_instance)) {
             ogs_timer_start(nf_instance->t_registration_interval,
                 ogs_app()->time.message.sbi.
-                    nf_register_interval_in_exception);
+                    reconnect_interval_in_exception);
         }
         break;
 

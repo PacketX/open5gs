@@ -39,6 +39,8 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
 {
     int rv;
 
+    sepp_node_t *node = NULL;
+
     ogs_sbi_stream_t *stream = NULL;
     ogs_sbi_request_t *request = NULL;
 
@@ -228,12 +230,28 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
 
         switch(e->h.timer_id) {
         case SEPP_TIMER_PEER_ESTABLISH:
+            node = e->node;
+            ogs_assert(node);
+
+            ogs_fsm_dispatch(&node->sm, e);
+#if 0
+            if (OGS_FSM_CHECK(&node->sm, sepp_n32_state_exception))
+                ogs_error("[%s:%s] State machine exception [%d]",
+                        OpenAPI_nf_type_ToString(nf_instance->nf_type),
+                        nf_instance->id, e->h.timer_id);
+#endif
+            break;
+
+        case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
+        case OGS_TIMER_NF_INSTANCE_HEARTBEAT_INTERVAL:
+        case OGS_TIMER_NF_INSTANCE_NO_HEARTBEAT:
+        case OGS_TIMER_NF_INSTANCE_VALIDITY:
             nf_instance = e->h.sbi.data;
             ogs_assert(nf_instance);
             ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
 
             ogs_fsm_dispatch(&nf_instance->sm, e);
-            if (OGS_FSM_CHECK(&nf_instance->sm, sepp_n32_state_exception))
+            if (OGS_FSM_CHECK(&nf_instance->sm, ogs_sbi_nf_state_exception))
                 ogs_error("[%s:%s] State machine exception [%d]",
                         OpenAPI_nf_type_ToString(nf_instance->nf_type),
                         nf_instance->id, e->h.timer_id);

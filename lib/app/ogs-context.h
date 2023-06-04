@@ -146,8 +146,8 @@ typedef struct ogs_app_context_s {
             struct {
                 ogs_time_t client_wait_duration;
                 ogs_time_t connection_deadline;
-                ogs_time_t nf_register_interval;
-                ogs_time_t nf_register_interval_in_exception;
+                ogs_time_t reconnect_interval;
+                ogs_time_t reconnect_interval_in_exception;
             } sbi;
 
             struct {

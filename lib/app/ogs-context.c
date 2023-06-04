@@ -103,10 +103,10 @@ static void regenerate_all_timer_duration(void)
     self.time.message.sbi.client_wait_duration = self.time.message.duration;
     self.time.message.sbi.connection_deadline =
         self.time.message.sbi.client_wait_duration + ogs_time_from_sec(1);
-    self.time.message.sbi.nf_register_interval =
+    self.time.message.sbi.reconnect_interval =
         ogs_max(ogs_time_from_sec(3),
             self.time.message.sbi.client_wait_duration + ogs_time_from_sec(1));
-    self.time.message.sbi.nf_register_interval_in_exception =
+    self.time.message.sbi.reconnect_interval_in_exception =
                 ogs_time_from_sec(2);
 
 #define PFCP_N1_RESPONSE_RETRY_COUNT  3
@@ -159,7 +159,7 @@ static void regenerate_all_timer_duration(void)
         self.time.message.gtp.n3_holding_rcount,
         (long long)self.time.message.gtp.t3_holding_duration);
     ogs_trace("%lld, %lld, %lld",
-        (long long)self.time.message.sbi.nf_register_interval,
+        (long long)self.time.message.sbi.reconnect_interval,
         (long long)self.time.message.pfcp.association_interval,
         (long long)self.time.message.pfcp.no_heartbeat_duration);
 #endif
