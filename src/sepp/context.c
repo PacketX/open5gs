@@ -114,11 +114,8 @@ int sepp_context_parse_config(void)
                     do {
                         sepp_node_t *node = NULL;
                         ogs_sbi_client_t *client = NULL;
-                        ogs_sockaddr_t *addr = NULL;
-                        int family = AF_UNSPEC;
-                        int i, num = 0;
-                        const char *hostname[OGS_MAX_NUM_OF_HOSTNAME];
-                        uint16_t port = ogs_sbi_client_default_port();
+                        const char *uri = NULL;
+                        const char *fqdn = NULL;
 
                         if (ogs_yaml_iter_type(&peer_array) ==
                                 YAML_MAPPING_NODE) {
@@ -139,71 +136,39 @@ int sepp_context_parse_config(void)
                             const char *peer_key =
                                 ogs_yaml_iter_key(&peer_iter);
                             ogs_assert(peer_key);
-                            if (!strcmp(peer_key, "family")) {
-                                const char *v = ogs_yaml_iter_value(&peer_iter);
-                                if (v) family = atoi(v);
-                                if (family != AF_UNSPEC &&
-                                    family != AF_INET && family != AF_INET6) {
-                                    ogs_warn("Ignore family(%d) : "
-                                        "AF_UNSPEC(%d), "
-                                        "AF_INET(%d), AF_INET6(%d) ",
-                                        family, AF_UNSPEC, AF_INET, AF_INET6);
-                                    family = AF_UNSPEC;
-                                }
-                            } else if (!strcmp(peer_key, "addr") ||
-                                    !strcmp(peer_key, "name")) {
-                                ogs_yaml_iter_t hostname_iter;
-                                ogs_yaml_iter_recurse(&peer_iter,
-                                        &hostname_iter);
-                                ogs_assert(ogs_yaml_iter_type(&hostname_iter) !=
-                                    YAML_MAPPING_NODE);
-
-                                do {
-                                    if (ogs_yaml_iter_type(&hostname_iter) ==
-                                            YAML_SEQUENCE_NODE) {
-                                        if (!ogs_yaml_iter_next(&hostname_iter))
-                                            break;
-                                    }
-
-                                    ogs_assert(num < OGS_MAX_NUM_OF_HOSTNAME);
-                                    hostname[num++] =
-                                        ogs_yaml_iter_value(&hostname_iter);
-                                } while (
-                                    ogs_yaml_iter_type(&hostname_iter) ==
-                                        YAML_SEQUENCE_NODE);
-                            } else if (!strcmp(peer_key, "port")) {
-                                const char *v = ogs_yaml_iter_value(&peer_iter);
-                                if (v) port = atoi(v);
-                            } else if (!strcmp(peer_key, "advertise")) {
-                                /* Nothing in client */
+                            if (!strcmp(peer_key, "fqdn")) {
+                                fqdn = ogs_yaml_iter_value(&peer_iter);
+                            } else if (!strcmp(peer_key, "uri")) {
+                                uri = ogs_yaml_iter_value(&peer_iter);
                             } else
                                 ogs_warn("unknown key `%s`", peer_key);
                         }
 
-                        addr = NULL;
-                        for (i = 0; i < num; i++) {
-                            rv = ogs_addaddrinfo(&addr,
-                                    family, hostname[i], port, 0);
-                            ogs_assert(rv == OGS_OK);
+                        if (fqdn && uri) {
+                            bool rc;
+                            OpenAPI_uri_scheme_e scheme =
+                                OpenAPI_uri_scheme_NULL;
+                            ogs_sockaddr_t *addr = NULL;
+                            rc = ogs_sbi_getaddr_from_uri(
+                                    &scheme, &addr, (char *)uri);
+                            if (rc == false ||
+                                    scheme == OpenAPI_uri_scheme_NULL) {
+                                ogs_error("Invalid URI[%s] with FQDN[%s]",
+                                        uri, fqdn);
+                            } else {
+                                node = sepp_node_add();
+                                ogs_assert(node);
+
+                                client = ogs_sbi_client_add(scheme, addr);
+                                ogs_assert(client);
+                                OGS_SBI_SETUP_CLIENT(node, client);
+
+                                ogs_freeaddrinfo(addr);
+                            }
+                        } else {
+                            ogs_error("Invalid Parameter [FQDN:%s,URI:%s]",
+                                    fqdn ? fqdn : "NULL", uri ? uri : "NULL");
                         }
-
-                        ogs_filter_ip_version(&addr,
-                                ogs_app()->parameter.no_ipv4,
-                                ogs_app()->parameter.no_ipv6,
-                                ogs_app()->parameter.prefer_ipv4);
-
-                        if (addr == NULL) continue;
-
-                        node = sepp_node_add();
-                        ogs_assert(node);
-
-                        client = ogs_sbi_client_add(
-                                    ogs_sbi_client_default_scheme(), addr);
-                        ogs_assert(client);
-                        OGS_SBI_SETUP_CLIENT(node, client);
-
-                        ogs_freeaddrinfo(addr);
-
                     } while (ogs_yaml_iter_type(&peer_array) ==
                             YAML_SEQUENCE_NODE);
                 } else if (!strcmp(sepp_key, "info")) {
