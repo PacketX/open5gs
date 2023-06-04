@@ -54,7 +54,7 @@ void sepp_context_final(void)
 {
     ogs_assert(context_initialized == 1);
 
-    ogs_sbi_nf_instance_remove_all(&ogs_sbi_self()->nf_instance_list);
+    ogs_sbi_nf_instance_remove_all();
 
     sepp_node_remove_all();
     sepp_assoc_remove_all();

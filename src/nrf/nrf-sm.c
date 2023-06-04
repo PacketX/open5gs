@@ -101,7 +101,6 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
 
                 DEFAULT
                     nf_instance = ogs_sbi_nf_instance_find(
-                            &ogs_sbi_self()->nf_instance_list,
                             message.h.resource.component[1]);
                     if (!nf_instance) {
                         SWITCH(message.h.method)
@@ -120,8 +119,7 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
                                         message.h.resource.component[1]));
                                 break;
                             }
-                            nf_instance = ogs_sbi_nf_instance_add(
-                                    &ogs_sbi_self()->nf_instance_list);
+                            nf_instance = ogs_sbi_nf_instance_add();
                             ogs_assert(nf_instance);
                             ogs_sbi_nf_instance_set_id(nf_instance,
                                     message.h.resource.component[1]);
@@ -148,9 +146,7 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
                         if (OGS_FSM_CHECK(&nf_instance->sm,
                                     nrf_nf_state_de_registered)) {
                             nrf_nf_fsm_fini(nf_instance);
-                            ogs_sbi_nf_instance_remove(
-                                    &ogs_sbi_self()->nf_instance_list,
-                                    nf_instance);
+                            ogs_sbi_nf_instance_remove(nf_instance);
                         } else if (OGS_FSM_CHECK(&nf_instance->sm,
                                     nrf_nf_state_exception)) {
                             ogs_error("[%s] State machine exception",
@@ -158,9 +154,7 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
                             ogs_sbi_message_free(&message);
 
                             nrf_nf_fsm_fini(nf_instance);
-                            ogs_sbi_nf_instance_remove(
-                                    &ogs_sbi_self()->nf_instance_list,
-                                    nf_instance);
+                            ogs_sbi_nf_instance_remove(nf_instance);
                         }
                     }
                 END
@@ -255,8 +249,7 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
             nf_instance->nf_status = OpenAPI_nf_status_SUSPENDED;
 
             nrf_nf_fsm_fini(nf_instance);
-            ogs_sbi_nf_instance_remove(
-                    &ogs_sbi_self()->nf_instance_list, nf_instance);
+            ogs_sbi_nf_instance_remove(nf_instance);
 
             /* FIXME : Remove unnecessary Client */
             break;

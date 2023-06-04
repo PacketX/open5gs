@@ -65,8 +65,7 @@ void ogs_sbi_context_init(OpenAPI_nf_type_e nf_type)
     ogs_pool_init(&nf_info_pool, ogs_app()->pool.nf * OGS_MAX_NUM_OF_NF_INFO);
 
     /* Add SELF NF-Instance */
-    self.nf_instance = ogs_sbi_nf_instance_add(
-            &ogs_sbi_self()->nf_instance_list);
+    self.nf_instance = ogs_sbi_nf_instance_add();
     ogs_assert(self.nf_instance);
 
     ogs_uuid_get(&self.uuid);
@@ -76,15 +75,13 @@ void ogs_sbi_context_init(OpenAPI_nf_type_e nf_type)
 
     /* Add NRF NF-Instance */
     if (nf_type != OpenAPI_nf_type_NRF) {
-        self.nrf_instance = ogs_sbi_nf_instance_add(
-                &ogs_sbi_self()->nf_instance_list);
+        self.nrf_instance = ogs_sbi_nf_instance_add();
         ogs_assert(self.nrf_instance);
         ogs_sbi_nf_instance_set_type(self.nrf_instance, OpenAPI_nf_type_NRF);
     }
 
     /* Add SCP NF-Instance */
-    self.scp_instance = ogs_sbi_nf_instance_add(
-                &ogs_sbi_self()->nf_instance_list);
+    self.scp_instance = ogs_sbi_nf_instance_add();
     ogs_assert(self.scp_instance);
     ogs_sbi_nf_instance_set_type(self.scp_instance, OpenAPI_nf_type_SCP);
 
@@ -103,7 +100,7 @@ void ogs_sbi_context_final(void)
 
     ogs_pool_final(&xact_pool);
 
-    ogs_sbi_nf_instance_remove_all(&ogs_sbi_self()->nf_instance_list);
+    ogs_sbi_nf_instance_remove_all();
 
     ogs_pool_final(&nf_instance_pool);
     ogs_pool_final(&nf_service_pool);
@@ -800,11 +797,9 @@ bool ogs_sbi_nf_service_is_available(const char *name)
     return false;
 }
 
-ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_add(ogs_list_t *list)
+ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_add(void)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
-
-    ogs_assert(list);
 
     ogs_pool_alloc(&nf_instance_pool, &nf_instance);
     ogs_assert(nf_instance);
@@ -821,7 +816,7 @@ ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_add(ogs_list_t *list)
     nf_instance->capacity = OGS_SBI_DEFAULT_CAPACITY;
     nf_instance->load = OGS_SBI_DEFAULT_LOAD;
 
-    ogs_list_add(list, nf_instance);
+    ogs_list_add(&ogs_sbi_self()->nf_instance_list, nf_instance);
 
     return nf_instance;
 }
@@ -914,10 +909,8 @@ void ogs_sbi_nf_instance_clear(ogs_sbi_nf_instance_t *nf_instance)
     nf_instance->num_of_allowed_nf_type = 0;
 }
 
-void ogs_sbi_nf_instance_remove(
-        ogs_list_t *list, ogs_sbi_nf_instance_t *nf_instance)
+void ogs_sbi_nf_instance_remove(ogs_sbi_nf_instance_t *nf_instance)
 {
-    ogs_assert(list);
     ogs_assert(nf_instance);
 
     ogs_debug("ogs_sbi_nf_instance_remove()");
@@ -927,7 +920,7 @@ void ogs_sbi_nf_instance_remove(
         return;
     }
 
-    ogs_list_remove(list, nf_instance);
+    ogs_list_remove(&ogs_sbi_self()->nf_instance_list, nf_instance);
 
     ogs_sbi_nf_info_remove_all(&nf_instance->nf_info_list);
 
@@ -946,24 +939,22 @@ void ogs_sbi_nf_instance_remove(
     ogs_pool_free(&nf_instance_pool, nf_instance);
 }
 
-void ogs_sbi_nf_instance_remove_all(ogs_list_t *list)
+void ogs_sbi_nf_instance_remove_all(void)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL, *next_nf_instance = NULL;
 
-    ogs_assert(list);
-
-    ogs_list_for_each_safe(list, next_nf_instance, nf_instance)
-        ogs_sbi_nf_instance_remove(list, nf_instance);
+    ogs_list_for_each_safe(
+            &ogs_sbi_self()->nf_instance_list, next_nf_instance, nf_instance)
+        ogs_sbi_nf_instance_remove(nf_instance);
 }
 
-ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find(ogs_list_t *list, char *id)
+ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find(char *id)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
 
-    ogs_assert(list);
     ogs_assert(id);
 
-    ogs_list_for_each(list, nf_instance) {
+    ogs_list_for_each(&ogs_sbi_self()->nf_instance_list, nf_instance) {
         if (nf_instance->id && strcmp(nf_instance->id, id) == 0)
             break;
     }
@@ -972,18 +963,16 @@ ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find(ogs_list_t *list, char *id)
 }
 
 ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find_by_discovery_param(
-        ogs_list_t *list,
         OpenAPI_nf_type_e target_nf_type,
         OpenAPI_nf_type_e requester_nf_type,
         ogs_sbi_discovery_option_t *discovery_option)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
 
-    ogs_assert(list);
     ogs_assert(target_nf_type);
     ogs_assert(requester_nf_type);
 
-    ogs_list_for_each(list, nf_instance) {
+    ogs_list_for_each(&ogs_sbi_self()->nf_instance_list, nf_instance) {
         if (ogs_sbi_discovery_param_is_matched(
                     nf_instance, target_nf_type, requester_nf_type,
                     discovery_option) == false)
@@ -1017,7 +1006,6 @@ ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_find_by_service_type(
     ogs_sbi_discovery_option_add_service_names(discovery_option, service_name);
 
     nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
-            &ogs_sbi_self()->nf_instance_list,
             target_nf_type, requester_nf_type, discovery_option);
 
     ogs_sbi_discovery_option_free(discovery_option);
@@ -1723,15 +1711,13 @@ void ogs_sbi_object_free(ogs_sbi_object_t *sbi_object)
         ogs_sbi_nf_instance_t *nf_instance =
             sbi_object->service_type_array[i].nf_instance;
         if (nf_instance)
-            ogs_sbi_nf_instance_remove(
-                    &ogs_sbi_self()->nf_instance_list, nf_instance);
+            ogs_sbi_nf_instance_remove(nf_instance);
     }
     for (i = 0; i < OGS_SBI_MAX_NUM_OF_NF_TYPE; i++) {
         ogs_sbi_nf_instance_t *nf_instance =
             sbi_object->nf_type_array[i].nf_instance;
         if (nf_instance)
-            ogs_sbi_nf_instance_remove(
-                    &ogs_sbi_self()->nf_instance_list, nf_instance);
+            ogs_sbi_nf_instance_remove(nf_instance);
     }
 }
 

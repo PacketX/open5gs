@@ -624,9 +624,7 @@ bool nrf_nnrf_handle_nf_profile_retrieval(
     ogs_assert(recvmsg);
 
     ogs_assert(recvmsg->h.resource.component[1]);
-    nf_instance = ogs_sbi_nf_instance_find(
-            &ogs_sbi_self()->nf_instance_list,
-            recvmsg->h.resource.component[1]);
+    nf_instance = ogs_sbi_nf_instance_find(recvmsg->h.resource.component[1]);
     if (!nf_instance) {
         ogs_error("Not found [%s]", recvmsg->h.resource.component[1]);
         ogs_assert(true ==

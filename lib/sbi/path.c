@@ -136,11 +136,9 @@ static int client_discover_cb(
     /* Added newly discovered NF Instance */
     if (producer_id) {
         ogs_sbi_nf_instance_t *nf_instance =
-            ogs_sbi_nf_instance_find(
-                    &ogs_sbi_self()->nf_instance_list, producer_id);
+            ogs_sbi_nf_instance_find(producer_id);
         if (!nf_instance) {
-            nf_instance = ogs_sbi_nf_instance_add(
-                    &ogs_sbi_self()->nf_instance_list);
+            nf_instance = ogs_sbi_nf_instance_add();
             ogs_assert(nf_instance);
 
             ogs_sbi_nf_instance_set_id(nf_instance, producer_id);
@@ -209,7 +207,6 @@ int ogs_sbi_discover_and_send(ogs_sbi_xact_t *xact)
     nf_instance = sbi_object->service_type_array[service_type].nf_instance;
     if (!nf_instance) {
         nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
-                        &ogs_sbi_self()->nf_instance_list,
                         target_nf_type, requester_nf_type, discovery_option);
         if (nf_instance)
             OGS_SBI_SETUP_NF_INSTANCE(

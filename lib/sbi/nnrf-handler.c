@@ -713,12 +713,9 @@ bool ogs_nnrf_nfm_handle_nf_status_notify(
             return false;
         }
 
-        nf_instance = ogs_sbi_nf_instance_find(
-                &ogs_sbi_self()->nf_instance_list,
-                message.h.resource.component[1]);
+        nf_instance = ogs_sbi_nf_instance_find(message.h.resource.component[1]);
         if (!nf_instance) {
-            nf_instance = ogs_sbi_nf_instance_add(
-                    &ogs_sbi_self()->nf_instance_list);
+            nf_instance = ogs_sbi_nf_instance_add();
             ogs_assert(nf_instance);
 
             ogs_sbi_nf_instance_set_id(
@@ -741,9 +738,7 @@ bool ogs_nnrf_nfm_handle_nf_status_notify(
 
     } else if (NotificationData->event ==
             OpenAPI_notification_event_type_NF_DEREGISTERED) {
-        nf_instance = ogs_sbi_nf_instance_find(
-                &ogs_sbi_self()->nf_instance_list,
-                message.h.resource.component[1]);
+        nf_instance = ogs_sbi_nf_instance_find(message.h.resource.component[1]);
         if (nf_instance) {
             if (OGS_OBJECT_IS_REF(nf_instance)) {
                 /* There are references to other contexts. */
@@ -755,8 +750,7 @@ bool ogs_nnrf_nfm_handle_nf_status_notify(
                 ogs_info("[%s:%d] NF removed",
                         nf_instance->id, nf_instance->reference_count);
                 ogs_sbi_nf_fsm_fini((nf_instance));
-                ogs_sbi_nf_instance_remove(
-                        &ogs_sbi_self()->nf_instance_list, nf_instance);
+                ogs_sbi_nf_instance_remove(nf_instance);
             }
         } else {
             ogs_warn("[%s] (NRF-notify) Not found",
@@ -824,12 +818,9 @@ void ogs_nnrf_disc_handle_nf_discover_search_result(
             continue;
         }
 
-        nf_instance = ogs_sbi_nf_instance_find(
-                &ogs_sbi_self()->nf_instance_list,
-                NFProfile->nf_instance_id);
+        nf_instance = ogs_sbi_nf_instance_find(NFProfile->nf_instance_id);
         if (!nf_instance) {
-            nf_instance = ogs_sbi_nf_instance_add(
-                    &ogs_sbi_self()->nf_instance_list);
+            nf_instance = ogs_sbi_nf_instance_add();
             ogs_assert(nf_instance);
 
             ogs_sbi_nf_instance_set_id(nf_instance, NFProfile->nf_instance_id);

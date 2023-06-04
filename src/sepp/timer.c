@@ -38,7 +38,7 @@ const char *sepp_timer_get_name(int timer_id)
         return OGS_TIMER_NAME_SBI_CLIENT_WAIT;
     case SEPP_TIMER_PEER_ESTABLISH:
         return "SEPP_TIMER_PEER_ESTABLISH";
-    default: 
+    default:
        break;
     }
 
