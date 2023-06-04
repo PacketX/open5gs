@@ -48,7 +48,6 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
     ogs_sbi_subscription_data_t *subscription_data = NULL;
     ogs_sbi_response_t *response = NULL;
     ogs_sbi_message_t message;
-    ogs_sbi_xact_t *sbi_xact = NULL;
 
     sepp_sm_debug(e);
 
@@ -216,6 +215,24 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
             END
             break;
 
+        CASE(OGS_SBI_SERVICE_NAME_N32C_HANDSHAKE)
+
+            SWITCH(message.h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_EXCHANGE_CAPABILITY)
+                node = e->h.sbi.data;
+                ogs_assert(node);
+                ogs_assert(OGS_FSM_STATE(&node->sm));
+
+                e->h.sbi.message = &message;
+                ogs_fsm_dispatch(&node->sm, e);
+                break;
+
+            DEFAULT
+                ogs_error("Invalid resource name [%s]",
+                        message.h.resource.component[0]);
+                ogs_assert_if_reached();
+            END
+
         DEFAULT
             ogs_error("Invalid service name [%s]", message.h.service.name);
             ogs_assert_if_reached();
@@ -232,14 +249,12 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
         case SEPP_TIMER_PEER_ESTABLISH:
             node = e->h.sbi.data;
             ogs_assert(node);
+            ogs_assert(OGS_FSM_STATE(&node->sm));
 
             ogs_fsm_dispatch(&node->sm, e);
-#if 0
             if (OGS_FSM_CHECK(&node->sm, sepp_n32_state_exception))
-                ogs_error("[%s:%s] State machine exception [%d]",
-                        OpenAPI_nf_type_ToString(nf_instance->nf_type),
-                        nf_instance->id, e->h.timer_id);
-#endif
+                ogs_error("[%s] State machine exception [%d]",
+                        node->fqdn ? node->fqdn : "Unknown", e->h.timer_id);
             break;
 
         case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
