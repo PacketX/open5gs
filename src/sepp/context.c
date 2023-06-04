@@ -38,6 +38,7 @@ void sepp_context_init(void)
 
     ogs_log_install_domain(&__sepp_log_domain, "sepp", ogs_core()->log.level);
 
+    /* Peer SEPP List */
     ogs_list_init(&self.peer_list);
 
 #define MAX_NUM_OF_SEPP_ASSOC 8

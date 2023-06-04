@@ -227,16 +227,13 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
         ogs_assert(e);
 
         switch(e->h.timer_id) {
-        case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
-        case OGS_TIMER_NF_INSTANCE_HEARTBEAT_INTERVAL:
-        case OGS_TIMER_NF_INSTANCE_NO_HEARTBEAT:
-        case OGS_TIMER_NF_INSTANCE_VALIDITY:
+        case SEPP_TIMER_PEER_ESTABLISH:
             nf_instance = e->h.sbi.data;
             ogs_assert(nf_instance);
             ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
 
             ogs_fsm_dispatch(&nf_instance->sm, e);
-            if (OGS_FSM_CHECK(&nf_instance->sm, ogs_sbi_nf_state_exception))
+            if (OGS_FSM_CHECK(&nf_instance->sm, sepp_n32_state_exception))
                 ogs_error("[%s:%s] State machine exception [%d]",
                         OpenAPI_nf_type_ToString(nf_instance->nf_type),
                         nf_instance->id, e->h.timer_id);
@@ -267,55 +264,6 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
 
             ogs_info("[%s] Need to update Subscription",
                     subscription_data->id);
-            break;
-
-        case OGS_TIMER_SBI_CLIENT_WAIT:
-            /*
-             * ogs_pollset_poll() receives the time of the expiration
-             * of next timer as an argument. If this timeout is
-             * in very near future (1 millisecond), and if there are
-             * multiple events that need to be processed by ogs_pollset_poll(),
-             * these could take more than 1 millisecond for processing,
-             * resulting in the timer already passed the expiration.
-             *
-             * In case that another NF is under heavy load and responds
-             * to an SBI request with some delay of a few seconds,
-             * it can happen that ogs_pollset_poll() adds SBI responses
-             * to the event list for further processing,
-             * then ogs_timer_mgr_expire() is called which will add
-             * an additional event for timer expiration. When all events are
-             * processed one-by-one, the SBI xact would get deleted twice
-             * in a row, resulting in a crash.
-             *
-             * 1. ogs_pollset_poll()
-             *    message was received and put into an event list,
-             * 2. ogs_timer_mgr_expire()
-             *    add an additional event for timer expiration
-             * 3. message event is processed. (free SBI xact)
-             * 4. timer expiration event is processed. (double-free SBI xact)
-             *
-             * To avoid double-free SBI xact,
-             * we need to check ogs_sbi_xact_cycle()
-             */
-            sbi_xact = ogs_sbi_xact_cycle(e->h.sbi.data);
-            if (!sbi_xact) {
-                ogs_error("SBI transaction has already been removed");
-                break;
-            }
-
-            stream = sbi_xact->assoc_stream;
-            /* Here, we should not use ogs_assert(stream)
-             * since 'namf-comm' service has no an associated stream. */
-
-            ogs_sbi_xact_remove(sbi_xact);
-
-            ogs_error("Cannot receive SBI message");
-            if (stream) {
-                ogs_assert(true ==
-                    ogs_sbi_server_send_error(stream,
-                        OGS_SBI_HTTP_STATUS_GATEWAY_TIMEOUT, NULL,
-                        "Cannot receive SBI message", NULL));
-            }
             break;
 
         default:

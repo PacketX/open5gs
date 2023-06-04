@@ -63,6 +63,10 @@ static void event_termination(void)
     ogs_list_for_each(&ogs_sbi_self()->nf_instance_list, nf_instance)
         ogs_sbi_nf_fsm_fini(nf_instance);
 
+    /* Sending N32 Termination to Peer SMF */
+    ogs_list_for_each(&sepp_self()->peer_list, nf_instance)
+        ogs_sbi_nf_fsm_fini(nf_instance);
+
     /* Starting holding timer */
     t_termination_holding = ogs_timer_add(ogs_app()->timer_mgr, NULL, NULL);
     ogs_assert(t_termination_holding);

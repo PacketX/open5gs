@@ -26,14 +26,21 @@ void sepp_n32_state_initial(ogs_fsm_t *s, sepp_event_t *e)
     ogs_assert(s);
     ogs_assert(e);
 
-    sepp_sm_debug(e);
-
     nf_instance = e->h.sbi.data;
     ogs_assert(nf_instance);
 
+    if (NF_INSTANCE_ID_IS_SELF(nf_instance->id)) {
+        ogs_error("local");
+    } else {
+        /* Peer SEPP */
+        ogs_fatal("Peer");
+    }
+
+#if 0
     nf_instance->t_registration_interval = ogs_timer_add(ogs_app()->timer_mgr,
             ogs_timer_nf_instance_registration_interval, nf_instance);
     ogs_assert(nf_instance->t_registration_interval);
+#endif
 
     OGS_FSM_TRAN(s, &sepp_n32_state_handshake);
 }
@@ -50,7 +57,16 @@ void sepp_n32_state_final(ogs_fsm_t *s, sepp_event_t *e)
     nf_instance = e->h.sbi.data;
     ogs_assert(nf_instance);
 
+    if (NF_INSTANCE_ID_IS_SELF(nf_instance->id)) {
+        ogs_error("local");
+    } else {
+        /* Peer SEPP */
+        ogs_fatal("Peer");
+    }
+
+#if 0
     ogs_timer_delete(nf_instance->t_registration_interval);
+#endif
 }
 
 void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
@@ -68,16 +84,21 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
+#if 0
         ogs_timer_start(nf_instance->t_registration_interval,
             ogs_app()->time.message.sbi.nf_register_interval);
 
         ogs_assert(true == ogs_nnrf_nfm_send_nf_register(nf_instance));
+#endif
         break;
 
     case OGS_FSM_EXIT_SIG:
+#if 0
         ogs_timer_stop(nf_instance->t_registration_interval);
+#endif
         break;
 
+#if 0
     case OGS_EVENT_SBI_CLIENT:
         message = e->h.sbi.message;
         ogs_assert(message);
@@ -132,6 +153,7 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
                     ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
         }
         break;
+#endif
 
     default:
         ogs_error("Unknown event %s", sepp_event_get_name(e));
@@ -153,6 +175,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
+#if 0
         ogs_sbi_subscription_spec_t *subscription_spec = NULL;
 
         ogs_info("[%s] NF registered [Heartbeat:%ds]",
@@ -176,9 +199,11 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
                     subscription_spec->subscr_cond.nf_type,
                     subscription_spec->subscr_cond.service_name);
         }
+#endif
         break;
 
     case OGS_FSM_EXIT_SIG:
+#if 0
         ogs_info("[%s] NF de-registered",
                 NF_INSTANCE_ID(ogs_sbi_self()->nf_instance));
 
@@ -191,8 +216,10 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
             ogs_assert(true ==
                     ogs_nnrf_nfm_send_nf_de_register(nf_instance));
         }
+#endif
         break;
 
+#if 0
     case OGS_EVENT_SBI_CLIENT:
         message = e->h.sbi.message;
         ogs_assert(message);
@@ -267,6 +294,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
                     ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
         }
         break;
+#endif
 
     default:
         ogs_error("[%s:%s] Unknown event %s",
@@ -287,12 +315,13 @@ void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
 
     nf_instance = e->h.sbi.data;
     ogs_assert(nf_instance);
-    ogs_assert(ogs_sbi_self()->nf_instance);
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
+#if 0
         ogs_info("[%s] NF de-registered",
                 NF_INSTANCE_ID(ogs_sbi_self()->nf_instance));
+#endif
         break;
 
     case OGS_FSM_EXIT_SIG:
@@ -322,15 +351,20 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
+#if 0
         ogs_timer_start(nf_instance->t_registration_interval,
             ogs_app()->time.message.sbi.
                 nf_register_interval_in_exception);
+#endif
         break;
 
     case OGS_FSM_EXIT_SIG:
+#if 0
         ogs_timer_stop(nf_instance->t_registration_interval);
+#endif
         break;
 
+#if 0
     case OGS_EVENT_SBI_TIMER:
         switch(e->h.timer_id) {
         case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
@@ -367,6 +401,7 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
             ogs_error("Invalid API name [%s]", message->h.service.name);
         END
         break;
+#endif
 
     default:
         ogs_error("[%s:%s] Unknown event %s",

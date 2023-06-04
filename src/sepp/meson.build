@@ -18,6 +18,7 @@
 libsepp_sources = files('''
     context.c
     event.c
+    timer.c
 
     n32-sm.c
 

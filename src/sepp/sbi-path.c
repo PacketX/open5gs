@@ -46,6 +46,14 @@ int sepp_sbi_open(void)
     if (nf_instance)
         ogs_sbi_nf_fsm_init(nf_instance);
 
+    /* Initialize SEPP Peer List */
+    ogs_list_for_each(&sepp_self()->peer_list, nf_instance) {
+#if 0
+        ogs_sbi_nf_fsm_init(nf_instance,
+                sepp_n32_state_initial, sepp_n32_state_final);
+#endif
+    }
+
     if (ogs_sbi_server_start_all(request_handler) != OGS_OK)
         return OGS_ERROR;
 

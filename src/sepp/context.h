@@ -23,6 +23,7 @@
 #include "ogs-sbi.h"
 #include "ogs-app.h"
 
+#include "timer.h"
 #include "sepp-sm.h"
 
 #ifdef __cplusplus
