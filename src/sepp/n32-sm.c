@@ -143,12 +143,8 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
     case OGS_EVENT_SBI_TIMER:
         switch(e->h.timer_id) {
         case SEPP_TIMER_PEER_ESTABLISH:
-#if 0
-            ogs_warn("[%s] Retry to registration with NRF",
-                    NF_INSTANCE_ID(ogs_sbi_self()->node));
-#else
-            ogs_error("Retry to registration with NRF");
-#endif
+            ogs_warn("[%s] Retry establishment with Peer SEPP",
+                    node->fqdn ? node->fqdn : "Unknown");
 
             ogs_timer_start(node->t_establish_interval,
                 ogs_app()->time.message.sbi.reconnect_interval);
@@ -159,11 +155,8 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
             break;
 
         default:
-#if 0
-            ogs_error("[%s] Unknown timer[%s:%d]",
-                    NF_INSTANCE_ID(ogs_sbi_self()->node),
+            ogs_error("Unknown timer[%s:%d]",
                     ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
-#endif
         }
         break;
 
@@ -309,12 +302,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
 #endif
 
     default:
-#if 0
-        ogs_error("[%s:%s] Unknown event %s",
-                OpenAPI_nf_type_ToString(node->nf_type),
-                node->id ? node->id : "Undefined",
-                sepp_event_get_name(e));
-#endif
+        ogs_error("Unknown event %s", sepp_event_get_name(e));
         break;
     }
 }
@@ -342,12 +330,7 @@ void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
         break;
 
     default:
-#if 0
-        ogs_error("[%s:%s] Unknown event %s",
-                OpenAPI_nf_type_ToString(node->nf_type),
-                node->id ? node->id : "Undefined",
-                sepp_event_get_name(e));
-#endif
+        ogs_error("Unknown event %s", sepp_event_get_name(e));
         break;
     }
 }
@@ -374,24 +357,22 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
         ogs_timer_stop(node->t_establish_interval);
         break;
 
-#if 0
     case OGS_EVENT_SBI_TIMER:
         switch(e->h.timer_id) {
         case SEPP_TIMER_PEER_ESTABLISH:
-            ogs_warn("[%s] Retry to registration with NRF",
-                    NF_INSTANCE_ID(ogs_sbi_self()->node));
+            ogs_warn("[%s] Retry establishment with Peer SEPP",
+                    node->fqdn ? node->fqdn : "Unknown");
 
             OGS_FSM_TRAN(s, &ogs_sbi_nf_state_will_register);
             break;
 
         default:
-            ogs_error("[%s:%s] Unknown timer[%s:%d]",
-                    OpenAPI_nf_type_ToString(node->nf_type),
-                    node->id ? node->id : "Undefined",
+            ogs_error("Unknown timer[%s:%d]",
                     ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
         }
         break;
 
+#if 0
     case OGS_EVENT_SBI_CLIENT:
         message = e->h.sbi.message;
         ogs_assert(message);
@@ -414,12 +395,7 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
 #endif
 
     default:
-#if 0
-        ogs_error("[%s:%s] Unknown event %s",
-                OpenAPI_nf_type_ToString(node->nf_type),
-                node->id ? node->id : "Undefined",
-                sepp_event_get_name(e));
-#endif
+        ogs_error("Unknown event %s", sepp_event_get_name(e));
         break;
     }
 }

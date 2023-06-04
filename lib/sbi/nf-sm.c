@@ -172,7 +172,7 @@ void ogs_sbi_nf_state_will_register(ogs_fsm_t *s, ogs_event_t *e)
     case OGS_EVENT_SBI_TIMER:
         switch(e->timer_id) {
         case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
-            ogs_warn("[%s] Retry to registration with NRF",
+            ogs_warn("[%s] Retry registration with NRF",
                     NF_INSTANCE_ID(ogs_sbi_self()->nf_instance));
 
             ogs_timer_start(nf_instance->t_registration_interval,
@@ -399,7 +399,7 @@ void ogs_sbi_nf_state_exception(ogs_fsm_t *s, ogs_event_t *e)
     case OGS_EVENT_SBI_TIMER:
         switch(e->timer_id) {
         case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
-            ogs_warn("[%s] Retry to registration with NRF",
+            ogs_warn("[%s] Retry registration with NRF",
                     NF_INSTANCE_ID(ogs_sbi_self()->nf_instance));
 
             OGS_FSM_TRAN(s, &ogs_sbi_nf_state_will_register);

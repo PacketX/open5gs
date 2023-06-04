@@ -36,9 +36,10 @@ extern int __sepp_log_domain;
 #define OGS_LOG_DOMAIN __sepp_log_domain
 
 typedef struct sepp_context_s {
-    ogs_list_t          peer_list;
+    char *fqdn;
+    ogs_list_t peer_list;
 
-    ogs_list_t          assoc_list;
+    ogs_list_t assoc_list;
 } sepp_context_t;
 
 typedef struct sepp_node_s sepp_node_t;
@@ -49,6 +50,7 @@ typedef struct sepp_node_s {
     ogs_fsm_t sm;                           /* A state machine */
     ogs_timer_t *t_establish_interval;      /* timer to retry
                                                to establish peer node */
+
     char *fqdn;
 
     void *client;                           /* only used in CLIENT */
