@@ -223,7 +223,25 @@ sbi:
 #  o Don't use SCP server => App fails if no NRF available.
 #      delegated: no
 #
+#  sepp:
+#    fqdn: sepp.localdomain
+#    sbi:
+#      - addr: 127.0.2.10
+#        port: 7777
+#    peer:
+#      - fqdn: sepp1.localdomain
+#        uri: http://127.0.2.11:8888
+#      - fqdn: sepp2.localdomain
+#        uri: http://127.0.2.12:9999
+#      - fqdn: sepp3.localdomain
+#        uri: http://127.0.2.13:7777
+#    info:
+#      port:
+#        http: 6666
+#        https: 9999
+
 sepp:
+    fqdn: sepp.localdomain
     sbi:
       - addr: 127.0.2.10
         port: 7777

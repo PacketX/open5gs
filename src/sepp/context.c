@@ -77,6 +77,10 @@ static int sepp_context_prepare(void)
 
 static int sepp_context_validation(void)
 {
+    if (!self.fqdn) {
+        ogs_error("No FQDN in '%s'", ogs_app()->file);
+        return OGS_ERROR;
+    }
     return OGS_OK;
 }
 
@@ -108,6 +112,8 @@ int sepp_context_parse_config(void)
                     /* handle config in sbi library */
                 } else if (!strcmp(sepp_key, "discovery")) {
                     /* handle config in sbi library */
+                } else if (!strcmp(sepp_key, "fqdn")) {
+                    self.fqdn = ogs_yaml_iter_value(&sepp_iter);
                 } else if (!strcmp(sepp_key, "peer")) {
                     ogs_yaml_iter_t peer_array, peer_iter;
                     ogs_yaml_iter_recurse(&sepp_iter, &peer_array);
@@ -156,7 +162,7 @@ int sepp_context_parse_config(void)
                                 ogs_error("Invalid URI[%s] with FQDN[%s]",
                                         uri, fqdn);
                             } else {
-                                node = sepp_node_add();
+                                node = sepp_node_add(fqdn);
                                 ogs_assert(node);
 
                                 client = ogs_sbi_client_add(scheme, addr);
@@ -166,7 +172,7 @@ int sepp_context_parse_config(void)
                                 ogs_freeaddrinfo(addr);
                             }
                         } else {
-                            ogs_error("Invalid Parameter [FQDN:%s,URI:%s]",
+                            ogs_error("Invalid Mandatory [FQDN:%s,URI:%s]",
                                     fqdn ? fqdn : "NULL", uri ? uri : "NULL");
                         }
                     } while (ogs_yaml_iter_type(&peer_array) ==
@@ -232,7 +238,7 @@ int sepp_context_parse_config(void)
     return OGS_OK;
 }
 
-sepp_node_t *sepp_node_add(void)
+sepp_node_t *sepp_node_add(const char *fqdn)
 {
     sepp_node_t *node = NULL;
 
@@ -243,6 +249,8 @@ sepp_node_t *sepp_node_add(void)
         return NULL;
     }
     memset(node, 0, sizeof *node);
+
+    node->fqdn = fqdn;
 
     ogs_list_add(&self.peer_list, node);
 
