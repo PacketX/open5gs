@@ -239,12 +239,14 @@ sbi:
 #      port:
 #        http: 6666
 #        https: 9999
-
 sepp:
-    fqdn: sepp.localdomain
+    fqdn: sepp1.localdomain
     sbi:
       - addr: 127.0.2.10
         port: 7777
+    peer:
+      - fqdn: sepp2.localdomain
+        uri: http://127.0.2.11:7777
 
 #
 #  <SBI Client>>

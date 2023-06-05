@@ -48,7 +48,7 @@ typedef struct sepp_node_s {
     ogs_lnode_t lnode;
 
     bool initiate_handshake;    /* Initiate handshake */
-    const char *fqdn;
+    char *fqdn;
 
     ogs_fsm_t sm;                           /* A state machine */
     ogs_timer_t *t_establish_interval;      /* timer to retry
@@ -80,9 +80,10 @@ sepp_context_t *sepp_self(void);
 
 int sepp_context_parse_config(void);
 
-sepp_node_t *sepp_node_add(const char *fqdn);
+sepp_node_t *sepp_node_add(char *fqdn);
 void sepp_node_remove(sepp_node_t *node);
 void sepp_node_remove_all(void);
+sepp_node_t *sepp_node_find(char *fqdn);
 
 sepp_assoc_t *sepp_assoc_add(ogs_sbi_stream_t *stream);
 void sepp_assoc_remove(sepp_assoc_t *sess);

@@ -162,7 +162,7 @@ int sepp_context_parse_config(void)
                                 ogs_error("Invalid URI[%s] with FQDN[%s]",
                                         uri, fqdn);
                             } else {
-                                node = sepp_node_add(fqdn);
+                                node = sepp_node_add((char *)fqdn);
                                 ogs_assert(node);
 
                                 node->initiate_handshake = true;
@@ -240,7 +240,7 @@ int sepp_context_parse_config(void)
     return OGS_OK;
 }
 
-sepp_node_t *sepp_node_add(const char *fqdn)
+sepp_node_t *sepp_node_add(char *fqdn)
 {
     sepp_node_t *node = NULL;
 
@@ -252,7 +252,12 @@ sepp_node_t *sepp_node_add(const char *fqdn)
     }
     memset(node, 0, sizeof *node);
 
-    node->fqdn = fqdn;
+    node->fqdn = ogs_strdup(fqdn);
+    if (!node->fqdn) {
+        ogs_error("ogs_strdup[%s] failed", fqdn);
+        ogs_pool_free(&sepp_node_pool, node);
+        return NULL;
+    }
 
     ogs_list_add(&self.peer_list, node);
 
@@ -268,6 +273,9 @@ void sepp_node_remove(sepp_node_t *node)
     if (node->client)
         ogs_sbi_client_remove(node->client);
 
+    if (node->fqdn)
+        ogs_free(node->fqdn);
+
     ogs_pool_free(&sepp_node_pool, node);
 }
 
@@ -277,6 +285,21 @@ void sepp_node_remove_all(void)
 
     ogs_list_for_each_safe(&self.peer_list, next_node, node)
         sepp_node_remove(node);
+}
+
+sepp_node_t *sepp_node_find(char *fqdn)
+{
+    sepp_node_t *node = NULL;
+
+    ogs_assert(fqdn);
+
+    ogs_list_for_each(&self.peer_list, node) {
+        if (strcmp(node->fqdn, fqdn) == 0) {
+            return node;
+        }
+    }
+
+    return NULL;
 }
 
 sepp_assoc_t *sepp_assoc_add(ogs_sbi_stream_t *stream)

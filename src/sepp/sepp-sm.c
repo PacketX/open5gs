@@ -117,6 +117,64 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
             END
             break;
 
+        CASE(OGS_SBI_SERVICE_NAME_N32C_HANDSHAKE)
+            SWITCH(message.h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_EXCHANGE_CAPABILITY)
+                SWITCH(message.h.method)
+                CASE(OGS_SBI_HTTP_METHOD_POST)
+                    if (message.SecNegotiateReqData &&
+                        message.SecNegotiateReqData->sender) {
+                        node = sepp_node_find(
+                                message.SecNegotiateReqData->sender);
+                        if (!node) {
+                            node = sepp_node_add(
+                                message.SecNegotiateReqData->sender);
+                            ogs_assert(node);
+                        }
+                    }
+                    break;
+
+                DEFAULT
+                    ogs_error("Invalid HTTP method [%s]", message.h.method);
+                    ogs_assert(true ==
+                        ogs_sbi_server_send_error(stream,
+                            OGS_SBI_HTTP_STATUS_FORBIDDEN, &message,
+                            "Invalid HTTP method", message.h.method));
+                END
+                break;
+
+            DEFAULT
+                ogs_error("Invalid resource name [%s]",
+                        message.h.resource.component[0]);
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(stream,
+                        OGS_SBI_HTTP_STATUS_BAD_REQUEST, &message,
+                        "Invalid resource name",
+                        message.h.resource.component[0]));
+            END
+            break;
+
+            if (!node) {
+                ogs_error("Not found [%s]", message.h.method);
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(
+                        stream, OGS_SBI_HTTP_STATUS_NOT_FOUND,
+                        &message, "Not found", message.h.method));
+                break;
+            }
+
+            ogs_assert(OGS_FSM_STATE(&node->sm));
+
+            e->h.sbi.data = node;
+            e->h.sbi.message = &message;
+            ogs_fsm_dispatch(&node->sm, e);
+            if (OGS_FSM_CHECK(&node->sm, sepp_handshake_state_exception)) {
+                ogs_error("[%s] State machine exception", node->fqdn);
+                if (node->initiate_handshake == false)
+                    sepp_node_remove(node);
+            }
+            break;
+
         DEFAULT
             ogs_error("Invalid API name [%s]", message.h.service.name);
             ogs_assert(true ==
@@ -232,6 +290,7 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
                         message.h.resource.component[0]);
                 ogs_assert_if_reached();
             END
+            break;
 
         DEFAULT
             ogs_error("Invalid service name [%s]", message.h.service.name);
