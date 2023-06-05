@@ -152,7 +152,6 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
                         "Invalid resource name",
                         message.h.resource.component[0]));
             END
-            break;
 
             if (!node) {
                 ogs_error("Not found [%s]", message.h.method);
