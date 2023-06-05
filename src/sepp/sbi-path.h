@@ -30,6 +30,7 @@ int sepp_sbi_open(void);
 void sepp_sbi_close(void);
 
 bool sepp_n32c_handshake_send_exchange_capability(sepp_node_t *node);
+bool sepp_n32c_handshake_send_termination(sepp_node_t *node);
 
 #ifdef __cplusplus
 }

@@ -36,7 +36,15 @@ extern int __sepp_log_domain;
 #define OGS_LOG_DOMAIN __sepp_log_domain
 
 typedef struct sepp_context_s {
-    const char *fqdn;
+    char *fqdn;
+
+    struct {
+        bool tls;
+        bool prins;
+    } security_capability;
+
+    OpenAPI_security_capability_e negotiated_security_scheme;
+
     ogs_list_t peer_list;
 
     ogs_list_t assoc_list;

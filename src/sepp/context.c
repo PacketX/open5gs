@@ -62,6 +62,9 @@ void sepp_context_final(void)
     ogs_pool_final(&sepp_node_pool);
     ogs_pool_final(&sepp_assoc_pool);
 
+    if (self.fqdn)
+        ogs_strdup(self.fqdn);
+
     context_initialized = 0;
 }
 
@@ -72,6 +75,8 @@ sepp_context_t *sepp_self(void)
 
 static int sepp_context_prepare(void)
 {
+    self.security_capability.tls = true;
+
     return OGS_OK;
 }
 
@@ -113,7 +118,11 @@ int sepp_context_parse_config(void)
                 } else if (!strcmp(sepp_key, "discovery")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(sepp_key, "fqdn")) {
-                    self.fqdn = ogs_yaml_iter_value(&sepp_iter);
+                    const char *v = ogs_yaml_iter_value(&sepp_iter);
+                    if (v) {
+                        self.fqdn = ogs_strdup(v);
+                        ogs_assert(self.fqdn);
+                    }
                 } else if (!strcmp(sepp_key, "peer")) {
                     ogs_yaml_iter_t peer_array, peer_iter;
                     ogs_yaml_iter_recurse(&sepp_iter, &peer_array);

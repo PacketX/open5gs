@@ -28,6 +28,7 @@ extern "C" {
 
 ogs_sbi_request_t *sepp_n32c_handshake_build_exchange_capability(
         sepp_node_t *node);
+ogs_sbi_request_t *sepp_n32c_handshake_build_termination(sepp_node_t *node);
 
 #ifdef __cplusplus
 }
