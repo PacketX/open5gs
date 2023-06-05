@@ -19,7 +19,7 @@
 
 #include "sbi-path.h"
 
-void sepp_n32_fsm_init(sepp_node_t *node)
+void sepp_handshake_fsm_init(sepp_node_t *node)
 {
     sepp_event_t e;
 
@@ -28,10 +28,11 @@ void sepp_n32_fsm_init(sepp_node_t *node)
     memset(&e, 0, sizeof(e));
     e.h.sbi.data = node;
 
-    ogs_fsm_init(&node->sm, sepp_n32_state_initial, sepp_n32_state_final, &e);
+    ogs_fsm_init(&node->sm,
+            sepp_handshake_state_initial, sepp_handshake_state_final, &e);
 }
 
-void sepp_n32_fsm_fini(sepp_node_t *node)
+void sepp_handshake_fsm_fini(sepp_node_t *node)
 {
     sepp_event_t e;
 
@@ -43,7 +44,7 @@ void sepp_n32_fsm_fini(sepp_node_t *node)
     ogs_fsm_fini(&node->sm, &e);
 }
 
-void sepp_n32_state_initial(ogs_fsm_t *s, sepp_event_t *e)
+void sepp_handshake_state_initial(ogs_fsm_t *s, sepp_event_t *e)
 {
     sepp_node_t *node = NULL;
 
@@ -53,14 +54,16 @@ void sepp_n32_state_initial(ogs_fsm_t *s, sepp_event_t *e)
     node = e->h.sbi.data;
     ogs_assert(node);
 
-    node->t_establish_interval = ogs_timer_add(ogs_app()->timer_mgr,
-            sepp_timer_peer_establish, node);
-    ogs_assert(node->t_establish_interval);
+    if (node->initiate_handshake == true) {
+        node->t_establish_interval = ogs_timer_add(ogs_app()->timer_mgr,
+                sepp_timer_peer_establish, node);
+        ogs_assert(node->t_establish_interval);
+    }
 
-    OGS_FSM_TRAN(s, &sepp_n32_state_handshake);
+    OGS_FSM_TRAN(s, &sepp_handshake_state_handshake);
 }
 
-void sepp_n32_state_final(ogs_fsm_t *s, sepp_event_t *e)
+void sepp_handshake_state_final(ogs_fsm_t *s, sepp_event_t *e)
 {
     sepp_node_t *node = NULL;
 
@@ -72,10 +75,11 @@ void sepp_n32_state_final(ogs_fsm_t *s, sepp_event_t *e)
     node = e->h.sbi.data;
     ogs_assert(node);
 
-    ogs_timer_delete(node->t_establish_interval);
+    if (node->t_establish_interval)
+        ogs_timer_delete(node->t_establish_interval);
 }
 
-void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
+void sepp_handshake_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 {
     sepp_node_t *node = NULL;
     ogs_sbi_message_t *message = NULL;
@@ -90,14 +94,19 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
-        ogs_timer_start(node->t_establish_interval,
-            ogs_app()->time.message.sbi.reconnect_interval);
+        if (node->t_establish_interval) {
+            ogs_timer_start(node->t_establish_interval,
+                ogs_app()->time.message.sbi.reconnect_interval);
 
-        ogs_expect(true == sepp_n32c_handshake_send_exchange_capability(node));
+            ogs_expect(true ==
+                    sepp_n32c_handshake_send_exchange_capability(node));
+        }
         break;
 
     case OGS_FSM_EXIT_SIG:
-        ogs_timer_stop(node->t_establish_interval);
+        if (node->t_establish_interval) {
+            ogs_timer_stop(node->t_establish_interval);
+        }
         break;
 
     case OGS_EVENT_SBI_CLIENT:
@@ -112,15 +121,15 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
 
                 if (message->res_status == OGS_SBI_HTTP_STATUS_OK) {
 #if 0
-                    sepp_n32c_handshake_handle_exchange_capability(node);
+                    sepp_n32c_handshake_handle_exchange_capability(node));
 #endif
 
-                    OGS_FSM_TRAN(s, &sepp_n32_state_established);
+                    OGS_FSM_TRAN(s, &sepp_handshake_state_established);
                 } else {
                     ogs_error("[%s] HTTP Response Status Code [%d]",
                             node->fqdn ? node->fqdn : "Unknown",
                             message->res_status);
-                    OGS_FSM_TRAN(s, &sepp_n32_state_exception);
+                    OGS_FSM_TRAN(s, &sepp_handshake_state_exception);
                 }
                 break;
 
@@ -144,6 +153,7 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
             ogs_warn("[%s] Retry establishment with Peer SEPP",
                     node->fqdn ? node->fqdn : "Unknown");
 
+            ogs_assert(node->t_establish_interval);
             ogs_timer_start(node->t_establish_interval,
                 ogs_app()->time.message.sbi.reconnect_interval);
 
@@ -163,7 +173,7 @@ void sepp_n32_state_handshake(ogs_fsm_t *s, sepp_event_t *e)
     }
 }
 
-void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
+void sepp_handshake_state_established(ogs_fsm_t *s, sepp_event_t *e)
 {
     sepp_node_t *node = NULL;
     ogs_sbi_message_t *message = NULL;
@@ -183,7 +193,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
     case OGS_FSM_EXIT_SIG:
         ogs_info("[%s] PEER terminated", node->fqdn ? node->fqdn : "Unknown");
 
-        if (!OGS_FSM_CHECK(&node->sm, sepp_n32_state_exception)) {
+        if (!OGS_FSM_CHECK(&node->sm, sepp_handshake_state_exception)) {
 #if 0
             ogs_assert(true ==
                     ogs_nnrf_nfm_send_nf_de_register(node));
@@ -206,7 +216,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
                     ogs_warn("[%s] HTTP response error [%d]",
                             node->fqdn ? node->fqdn : "Unknown",
                             message->res_status);
-                    OGS_FSM_TRAN(s, &sepp_n32_state_exception);
+                    OGS_FSM_TRAN(s, &sepp_handshake_state_exception);
                 }
 
                 break;
@@ -231,7 +241,7 @@ void sepp_n32_state_established(ogs_fsm_t *s, sepp_event_t *e)
     }
 }
 
-void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
+void sepp_handshake_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
 {
     sepp_node_t *node = NULL;
     ogs_assert(s);
@@ -256,7 +266,7 @@ void sepp_n32_state_terminated(ogs_fsm_t *s, sepp_event_t *e)
     }
 }
 
-void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
+void sepp_handshake_state_exception(ogs_fsm_t *s, sepp_event_t *e)
 {
     sepp_node_t *node = NULL;
     ogs_sbi_message_t *message = NULL;
@@ -270,12 +280,16 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
-        ogs_timer_start(node->t_establish_interval,
-            ogs_app()->time.message.sbi.reconnect_interval_in_exception);
+        if (node->t_establish_interval) {
+            ogs_timer_start(node->t_establish_interval,
+                ogs_app()->time.message.sbi.reconnect_interval_in_exception);
+        }
         break;
 
     case OGS_FSM_EXIT_SIG:
-        ogs_timer_stop(node->t_establish_interval);
+        if (node->t_establish_interval) {
+            ogs_timer_stop(node->t_establish_interval);
+        }
         break;
 
     case OGS_EVENT_SBI_TIMER:
@@ -284,7 +298,7 @@ void sepp_n32_state_exception(ogs_fsm_t *s, sepp_event_t *e)
             ogs_warn("[%s] Retry establishment with Peer SEPP",
                     node->fqdn ? node->fqdn : "Unknown");
 
-            OGS_FSM_TRAN(s, &sepp_n32_state_handshake);
+            OGS_FSM_TRAN(s, &sepp_handshake_state_handshake);
             break;
 
         default:

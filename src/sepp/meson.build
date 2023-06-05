@@ -23,7 +23,7 @@ libsepp_sources = files('''
     n32c-build.c
     n32c-handler.c
 
-    n32-sm.c
+    handshake-sm.c
 
     sbi-path.c
     sepp-sm.c

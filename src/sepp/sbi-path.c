@@ -49,7 +49,7 @@ int sepp_sbi_open(void)
 
     /* Initialize SEPP Peer List */
     ogs_list_for_each(&sepp_self()->peer_list, node)
-        sepp_n32_fsm_init(node);
+        sepp_handshake_fsm_init(node);
 
     if (ogs_sbi_server_start_all(request_handler) != OGS_OK)
         return OGS_ERROR;

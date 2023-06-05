@@ -66,7 +66,7 @@ static void event_termination(void)
 
     /* Sending N32 Termination to Peer SMF */
     ogs_list_for_each(&sepp_self()->peer_list, node)
-        sepp_n32_fsm_fini(node);
+        sepp_handshake_fsm_fini(node);
 
     /* Starting holding timer */
     t_termination_holding = ogs_timer_add(ogs_app()->timer_mgr, NULL, NULL);

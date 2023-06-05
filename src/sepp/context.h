@@ -47,11 +47,12 @@ typedef struct sepp_node_s sepp_node_t;
 typedef struct sepp_node_s {
     ogs_lnode_t lnode;
 
+    bool initiate_handshake;    /* Initiate handshake */
+    const char *fqdn;
+
     ogs_fsm_t sm;                           /* A state machine */
     ogs_timer_t *t_establish_interval;      /* timer to retry
                                                to establish peer node */
-
-    const char *fqdn;
 
     void *client;                           /* only used in CLIENT */
 } sepp_node_t;

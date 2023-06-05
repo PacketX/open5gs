@@ -165,6 +165,8 @@ int sepp_context_parse_config(void)
                                 node = sepp_node_add(fqdn);
                                 ogs_assert(node);
 
+                                node->initiate_handshake = true;
+
                                 client = ogs_sbi_client_add(scheme, addr);
                                 ogs_assert(client);
                                 OGS_SBI_SETUP_CLIENT(node, client);

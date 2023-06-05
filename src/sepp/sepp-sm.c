@@ -252,7 +252,7 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
             ogs_assert(OGS_FSM_STATE(&node->sm));
 
             ogs_fsm_dispatch(&node->sm, e);
-            if (OGS_FSM_CHECK(&node->sm, sepp_n32_state_exception))
+            if (OGS_FSM_CHECK(&node->sm, sepp_handshake_state_exception))
                 ogs_error("[%s] State machine exception [%d]",
                         node->fqdn ? node->fqdn : "Unknown", e->h.timer_id);
             break;
