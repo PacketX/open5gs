@@ -1,0 +1,8 @@
+[Unit]
+After=mongod.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-nrfd
+
+[Install]
+WantedBy=default.target

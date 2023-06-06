@@ -1,0 +1,10 @@
+[Unit]
+After=mongod.service
+
+[Service]
+WorkingDirectory=/usr/local/open5gs/webui
+Environment="HOSTNAME=192.168.1.101"
+ExecStart=npm run start
+
+[Install]
+WantedBy=default.target

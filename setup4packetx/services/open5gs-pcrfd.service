@@ -1,0 +1,8 @@
+[Unit]
+After=open5gs-hssd.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-pcrfd
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,8 @@
+[Unit]
+After=open5gs-mmed.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-sgwcd
+
+[Install]
+WantedBy=default.target

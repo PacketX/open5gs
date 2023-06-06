@@ -1,0 +1,8 @@
+[Unit]
+After=open5gs-upfd.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-ausfd
+
+[Install]
+WantedBy=default.target

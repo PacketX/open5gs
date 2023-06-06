@@ -1,0 +1,8 @@
+[Unit]
+After=open5gs-scpd.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-amfd
+
+[Install]
+WantedBy=default.target

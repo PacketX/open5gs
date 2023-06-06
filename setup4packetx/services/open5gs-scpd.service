@@ -1,0 +1,8 @@
+[Unit]
+After=open5gs-nrfd.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-scpd
+
+[Install]
+WantedBy=default.target

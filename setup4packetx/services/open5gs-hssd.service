@@ -1,0 +1,8 @@
+[Unit]
+After=open5gs-sgwud.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-hssd
+
+[Install]
+WantedBy=default.target

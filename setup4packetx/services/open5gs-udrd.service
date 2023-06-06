@@ -1,0 +1,8 @@
+[Unit]
+After=open5gs-bsfd.service
+
+[Service]
+ExecStart=/usr/local/open5gs/bin/open5gs-udrd
+
+[Install]
+WantedBy=default.target
