@@ -1,15 +1,16 @@
 Setup for PacketX
 =================
 
-environment setup (mainly mongdb, nodejs, meson, ninja)
+Environment setup
 -------------------------------------------------------
 ````
 apt install -y python3-pip python3-setuptools python3-wheel ninja-build build-essential flex bison git cmake libsctp-dev libgnutls28-dev libgcrypt-dev libssl-dev libidn11-dev libmongoc-dev libbson-dev libyaml-dev libnghttp2-dev libmicrohttpd-dev libcurl4-gnutls-dev libnghttp2-dev libtins-dev libtalloc-dev meson curl gpg
 ````
 
-for some CPU only suport mongdb4.4
+install Mongodb
 ----------------------------------
 ````
+#for some CPU only suport mongdb4.4
 echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
 apt update
 apt-get install libssl1.1
@@ -21,9 +22,6 @@ apt update
 apt-get install -y mongodb-org
 systemctl start mongod
 systemctl enable mongod
-
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-apt install -y nodejs
 ````
 
 build and install open5gs
@@ -39,10 +37,12 @@ ninja install
 install webui
 --------------
 ````
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+apt install -y nodejs
 cp open5gs/webui /usr/local/open5gs/ -R
 ````
 
-install services
+install as services
 ----------------
 ````
 cp services/open5gs-* /lib/systemd/system/
@@ -57,7 +57,6 @@ ip addr setup
 plmn setup to 46666 for private test
 ------------------------------------
 - modify /usr/local/open5gs/etc/open5gs/amf.yaml 
-- modify /usr/local/open5gs/etc/open5gs/smf.yaml 
 - modify /usr/local/open5gs/etc/open5gs/mme.yaml 
 
 start services
