@@ -1,5 +1,5 @@
 [Unit]
-After=open5gs-sgwud.service
+After=network-online.target
 
 [Service]
 ExecStart=/usr/local/open5gs/bin/open5gs-hssd
