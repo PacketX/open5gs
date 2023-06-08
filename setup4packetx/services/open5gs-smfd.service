@@ -3,6 +3,9 @@ After=open5gs-amfd.service
 
 [Service]
 ExecStart=/usr/local/open5gs/bin/open5gs-smfd
+Restart=always
+RestartSec=2
+RestartPreventExitStatus=1
 
 [Install]
 WantedBy=default.target

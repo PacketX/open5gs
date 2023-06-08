@@ -1,0 +1,6 @@
+[NetDev]
+Name=ogstun
+Kind=tap
+
+[Tap]
+Group=vhost-net

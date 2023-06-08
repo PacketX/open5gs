@@ -46,6 +46,11 @@ install as services
 ----------------
 ````
 cp services/open5gs-* /lib/systemd/system/
+cp iptables.sh /etc/
+cp 01-ogstun.netdev /etc/systemd/network/
+systemctl restart systemd-networkd
+cp 01-network-manager-all.yaml /etc/netplan/
+netplan apply
 ````
 
 ip addr setup
@@ -58,6 +63,7 @@ plmn setup to 46666 for private test
 ------------------------------------
 - modify /usr/local/open5gs/etc/open5gs/amf.yaml 
 - modify /usr/local/open5gs/etc/open5gs/mme.yaml 
+
 
 start services
 ---------------
@@ -79,6 +85,7 @@ systemctl start open5gs-sgwud.service
 systemctl start open5gs-hssd.service
 systemctl start open5gs-pcrfd.service
 systemctl start open5gs-webui.service
+systemctl start open5gs-nat.service
 ````
 
 stop services
@@ -101,6 +108,7 @@ systemctl stop open5gs-sgwud.service
 systemctl stop open5gs-hssd.service
 systemctl stop open5gs-pcrfd.service
 systemctl stop open5gs-webui.service
+systemctl stop open5gs-nat.service
 ````
 
 enable services
@@ -123,16 +131,17 @@ systemctl enable open5gs-sgwud.service
 systemctl enable open5gs-hssd.service
 systemctl enable open5gs-pcrfd.service
 systemctl enable open5gs-webui.service
+systemctl enable open5gs-nat.service
 ````
 
-#tun setup
+#tun setup manual
 ````
 ip tuntap add name ogstun mode tun
 ip addr add 10.45.0.200/16 dev ogstun
 ip link set ogstun up
 ````
 
-#nat
+#nat setup manual
 ````
 apt install -y iptables
 

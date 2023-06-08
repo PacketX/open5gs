@@ -3,6 +3,9 @@ After=mongod.service
 
 [Service]
 ExecStart=/usr/local/open5gs/bin/open5gs-nrfd
+Restart=always
+RestartSec=2
+RestartPreventExitStatus=1
 
 [Install]
 WantedBy=default.target
