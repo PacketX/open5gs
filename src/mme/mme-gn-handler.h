@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * This file is part of Open5GS.
  *
@@ -17,24 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SMF_NPCF_HANDLER_H
-#define SMF_NPCF_HANDLER_H
+#ifndef MME_GN_HANDLER_H
+#define MME_GN_HANDLER_H
+
+#include "mme-context.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "context.h"
+void mme_gn_handle_echo_request(
+        ogs_gtp_xact_t *xact, ogs_gtp1_echo_request_t *req);
 
-bool smf_npcf_smpolicycontrol_handle_create(
-        smf_sess_t *sess, int state, ogs_sbi_message_t *recvmsg);
-bool smf_npcf_smpolicycontrol_handle_update_notify(
-        smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *recvmsg);
-bool smf_npcf_smpolicycontrol_handle_terminate_notify(
-        smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *recvmsg);
+void mme_gn_handle_echo_response(
+        ogs_gtp_xact_t *xact, ogs_gtp1_echo_response_t *req);
+
+void mme_gn_handle_ran_information_relay(
+        ogs_gtp_xact_t *xact, ogs_gtp1_ran_information_relay_t *req);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SMF_NPCF_HANDLER_H */
+#endif /* MME_S11_HANDLER_H */

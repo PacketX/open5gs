@@ -545,74 +545,54 @@ void smf_gsm_state_wait_5gc_sm_policy_association(ogs_fsm_t *s, smf_event_t *e)
             break;
 
         CASE(OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL)
-            stream = e->h.sbi.data;
+            /*
+             * By here, SMF has already sent a response to AMF in
+             * smf_nudm_sdm_handle_get. Therefore, 'stream = e->h.sbi.data'
+             * should not be used here. Instead of sending additional error
+             * replies to AMF over 'stream', SMF should send a
+             * Namf_Communication_N1N2MessageTransfer request by transitioning
+             * into smf_gsm_state_5gc_n1_n2_reject. This is according to
+             *
+             * TS23.502
+             * 6.3.1.7 4.3.2.2 UE Requested PDU Session Establishment
+             * p100
+             * 11.  ...
+             * If the PDU session establishment failed anywhere between step 5
+             * and step 11, then the Namf_Communication_N1N2MessageTransfer
+             * request shall include the N1 SM container with a PDU Session
+             * Establishment Reject message ...
+             */
             state = e->h.sbi.state;
 
             SWITCH(sbi_message->h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_SM_POLICIES)
                 if (sbi_message->h.resource.component[1]) {
-                    strerror = ogs_msprintf("[%s:%d] "
-                            "Unknown resource name [%s]",
+                    ogs_error("[%s:%d] Unknown resource name [%s]",
                             smf_ue->supi, sess->psi,
                             sbi_message->h.resource.component[1]);
-                    ogs_assert(strerror);
-
-                    ogs_error("%s", strerror);
-                    if (stream)
-                        ogs_assert(true ==
-                            ogs_sbi_server_send_error(stream,
-                                OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                                sbi_message, strerror, NULL));
-                    ogs_free(strerror);
-
-                    OGS_FSM_TRAN(s, smf_gsm_state_exception);
+                    OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+                } else if (sbi_message->res_status !=
+                           OGS_SBI_HTTP_STATUS_CREATED) {
+                    ogs_error("[%s:%d] HTTP response error [%d]",
+                            smf_ue->supi, sess->psi,
+                            sbi_message->res_status);
+                    OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+                } else if (smf_npcf_smpolicycontrol_handle_create(
+                        sess, state, sbi_message) == true) {
+                    OGS_FSM_TRAN(s,
+                        &smf_gsm_state_wait_pfcp_establishment);
                 } else {
-                    ogs_assert(stream);
-                    if (sbi_message->res_status !=
-                            OGS_SBI_HTTP_STATUS_CREATED) {
-                        strerror = ogs_msprintf(
-                                "[%s:%d] HTTP response error [%d]",
-                                smf_ue->supi, sess->psi,
-                                sbi_message->res_status);
-                        ogs_assert(strerror);
-
-                        ogs_error("%s", strerror);
-                        ogs_assert(true ==
-                            ogs_sbi_server_send_error(stream,
-                                sbi_message->res_status,
-                                sbi_message, strerror, NULL));
-                        ogs_free(strerror);
-
-                        OGS_FSM_TRAN(s, smf_gsm_state_exception);
-                        break;
-                    }
-
-                    if (smf_npcf_smpolicycontrol_handle_create(
-                            sess, stream, state, sbi_message) == true) {
-                        OGS_FSM_TRAN(s,
-                            &smf_gsm_state_wait_pfcp_establishment);
-                    } else {
-                        ogs_error(
-                            "smf_npcf_smpolicycontrol_handle_create() failed");
-                        OGS_FSM_TRAN(s, smf_gsm_state_exception);
-                    }
+                    ogs_error(
+                        "smf_npcf_smpolicycontrol_handle_create() failed");
+                    OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
                 }
                 break;
 
             DEFAULT
-                strerror = ogs_msprintf("[%s:%d] Invalid resource name [%s]",
+                ogs_error("[%s:%d] Invalid resource name [%s]",
                         smf_ue->supi, sess->psi,
                         sbi_message->h.resource.component[0]);
-                ogs_assert(strerror);
-
-                ogs_error("%s", strerror);
-                ogs_assert(true ==
-                    ogs_sbi_server_send_error(stream,
-                        OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                        sbi_message, strerror, NULL));
-                ogs_free(strerror);
-
-                OGS_FSM_TRAN(s, smf_gsm_state_exception);
+                OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
             END
             break;
 
@@ -649,6 +629,9 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
     ogs_assert(sess);
 
     switch (e->h.id) {
+    case OGS_FSM_ENTRY_SIG:
+        break;
+
     case SMF_EVT_N4_MESSAGE:
         pfcp_xact = e->pfcp_xact;
         ogs_assert(pfcp_xact);
@@ -714,8 +697,10 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                 pfcp_cause = smf_5gc_n4_handle_session_establishment_response(
                         sess, pfcp_xact,
                         &pfcp_message->pfcp_session_establishment_response);
-                if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
+                if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
+                    OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
                     return;
+                }
                 memset(&param, 0, sizeof(param));
                 param.state = SMF_UE_REQUESTED_PDU_SESSION_ESTABLISHMENT;
                 param.n1smbuf =
@@ -735,6 +720,24 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("cannot handle PFCP message type[%d]",
                     pfcp_message->h.type);
         }
+        break;
+
+    case SMF_EVT_N4_TIMER:
+        switch (e->h.timer_id) {
+        case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+            OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+            break;
+        default:
+            ogs_error("Unknown timer[%s:%d]",
+                    ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
+        }
+        break;
+
+    case OGS_FSM_EXIT_SIG:
+        break;
+
+    default:
+        ogs_error("Unknown event [%s]", smf_event_get_name(e));
     }
 }
 
@@ -935,17 +938,18 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 } else {
                     SWITCH(sbi_message->h.resource.component[2])
                     CASE(OGS_SBI_RESOURCE_NAME_DELETE)
+                        if (sess->policy_association_id)
+                            ogs_free(sess->policy_association_id);
+                        sess->policy_association_id = NULL;
+
                         if (sbi_message->res_status !=
                                 OGS_SBI_HTTP_STATUS_NO_CONTENT) {
-                            strerror = ogs_msprintf(
-                                    "[%s:%d] HTTP response error [%d]",
+                            ogs_error("[%s:%d] HTTP response error [%d]",
                                     smf_ue->supi, sess->psi,
                                     sbi_message->res_status);
-                            ogs_assert(strerror);
-                            ogs_error("%s", strerror);
-                            ogs_free(strerror);
-                            OGS_FSM_TRAN(s, smf_gsm_state_exception);
-                            break;
+                            /* In spite of error from PCF, continue with
+                               session teardown, so as to not leave stale
+                               sessions. */
                         }
 
                         if (state == OGS_PFCP_DELETE_TRIGGER_SMF_INITIATED) {
@@ -966,7 +970,26 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
                                     NGAP_Cause_PR_nas, NGAP_CauseNas_normal_release);
                             ogs_assert(param.n2smbuf);
 
-                            param.skip_ind = true;
+    /*
+     * Skip_ind is not used when changing the PDU Session Anchor.
+     * param.skip_ind = false;
+     *
+     * TS23.502
+     * 4.3.4 PDU Session Release
+     * 4.3.4.2 UE or network requested PDU Session Release for Non-Roaming
+     * and Roaming with Local Breakout
+     *
+     * 3b. ...
+     *
+     * The "skip indicator" tells the AMF whether it may skip sending
+     * the N1 SM container to the UE (e.g. when the UE is in CM-IDLE state).
+     * SMF includes the "skip indicator"
+     * in the Namf_Communication_N1N2MessageTransfer
+     * except when the procedure is triggered to change PDU Session Anchor
+     * of a PDU Session with SSC mode 2.
+     *
+     * Related Issue #2396
+     */
 
                             smf_namf_comm_send_n1_n2_message_transfer(sess, &param);
                         } else {
@@ -1208,6 +1231,17 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("Unknown message[%d]", e->ngap.type);
         }
         break;
+
+        case SMF_EVT_N4_TIMER:
+            switch (e->h.timer_id) {
+            case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+                OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+                break;
+            default:
+                ogs_error("Unknown timer[%s:%d]",
+                        ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
+            }
+            break;
 
     default:
         ogs_error("Unknown event [%s]", smf_event_get_name(e));
@@ -1573,6 +1607,21 @@ void smf_gsm_state_wait_5gc_n1_n2_release(ogs_fsm_t *s, smf_event_t *e)
         ogs_assert(e->ngap.type);
 
         switch (e->ngap.type) {
+        case OpenAPI_n2_sm_info_type_PDU_RES_SETUP_RSP:
+            /*
+             * In case of PDU Session Anchor change, when removing the session,
+             * it cannot be activated because there is no UPF.
+             *
+             * 1. InitialContextSetupResponse
+             * 2. /nsmf-pdusession/v1/sm-contexts/{smContextRef}/modify
+             * 3. PFCP Session Modifcation Request (Apply: FORWARD)
+             * 4. No UPF, so we cannot do PFCP Session Modifcation Response
+             *
+             * At this point, we just reply HTTP_STATUS_NO_CONTENT to the AMF.
+             */
+            ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+            break;
+
         case OpenAPI_n2_sm_info_type_PDU_RES_REL_RSP:
             ngap_state = sess->ngap_state.pdu_session_resource_release;
 
@@ -1645,6 +1694,126 @@ void smf_gsm_state_wait_5gc_n1_n2_release(ogs_fsm_t *s, smf_event_t *e)
             ogs_free(strerror);
         }
         break;
+    }
+}
+
+void smf_gsm_state_5gc_n1_n2_reject(ogs_fsm_t *s, smf_event_t *e)
+{
+    smf_ue_t *smf_ue = NULL;
+    smf_sess_t *sess = NULL;
+    ogs_sbi_message_t *sbi_message = NULL;
+
+    ogs_assert(s);
+    ogs_assert(e);
+
+    smf_sm_debug(e);
+
+    sess = e->sess;
+    ogs_assert(sess);
+
+    switch (e->h.id) {
+    case OGS_FSM_ENTRY_SIG:
+        if (sess->policy_association_id) {
+            smf_npcf_smpolicycontrol_param_t param;
+            int r = 0;
+
+            memset(&param, 0, sizeof(param));
+
+            param.ue_location = true;
+            param.ue_timezone = true;
+
+            r = smf_sbi_discover_and_send(
+                    OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
+                    smf_npcf_smpolicycontrol_build_delete,
+                    sess, NULL,
+                    OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT, &param);
+            ogs_expect(r == OGS_OK);
+        } else {
+            smf_namf_comm_send_n1_n2_pdu_establishment_reject(sess);
+        }
+        break;
+    case OGS_FSM_EXIT_SIG:
+        break;
+
+    case OGS_EVENT_SBI_CLIENT:
+        sbi_message = e->h.sbi.message;
+        ogs_assert(sbi_message);
+
+        sess = e->sess;
+        ogs_assert(sess);
+        smf_ue = sess->smf_ue;
+        ogs_assert(smf_ue);
+
+        SWITCH(sbi_message->h.service.name)
+        CASE(OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL)
+            SWITCH(sbi_message->h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_SM_POLICIES)
+                if (!sbi_message->h.resource.component[1]) {
+                    ogs_error("[%s:%d] HTTP response error [%d]",
+                            smf_ue->supi, sess->psi,
+                            sbi_message->res_status);
+                    OGS_FSM_TRAN(s, smf_gsm_state_exception);
+                    break;
+                } else {
+                    SWITCH(sbi_message->h.resource.component[2])
+                    CASE(OGS_SBI_RESOURCE_NAME_DELETE)
+                        if (sess->policy_association_id)
+                            ogs_free(sess->policy_association_id);
+                        sess->policy_association_id = NULL;
+
+                        if (sbi_message->res_status !=
+                                OGS_SBI_HTTP_STATUS_NO_CONTENT) {
+                            ogs_error("[%s:%d] HTTP response error [%d]",
+                                    smf_ue->supi, sess->psi,
+                                    sbi_message->res_status);
+                            /* In spite of error from PCF, continue with
+                               session teardown, so as to not leave stale
+                               sessions. */
+                        }
+
+                        smf_namf_comm_send_n1_n2_pdu_establishment_reject(sess);
+                        break;
+                    DEFAULT
+                        ogs_error("[%s:%d] Unknown resource name [%s]",
+                                smf_ue->supi, sess->psi,
+                                sbi_message->h.resource.component[2]);
+                        OGS_FSM_TRAN(s, smf_gsm_state_exception);
+                    END
+                }
+                break;
+
+            DEFAULT
+                ogs_error("[%s:%d] Invalid resource name [%s]",
+                        smf_ue->supi, sess->psi,
+                        sbi_message->h.resource.component[0]);
+                OGS_FSM_TRAN(s, smf_gsm_state_exception);
+            END
+            break;
+
+        CASE(OGS_SBI_SERVICE_NAME_NAMF_COMM)
+            SWITCH(sbi_message->h.resource.component[0])
+            CASE(OGS_SBI_RESOURCE_NAME_UE_CONTEXTS)
+                OGS_FSM_TRAN(s, smf_gsm_state_session_will_release);
+                break;
+
+            DEFAULT
+                ogs_error("[%s:%d] Invalid resource name [%s]",
+                        smf_ue->supi, sess->psi,
+                        sbi_message->h.resource.component[0]);
+                OGS_FSM_TRAN(s, smf_gsm_state_exception);
+            END
+            break;
+
+        DEFAULT
+            ogs_error("[%s:%d] Invalid API name [%s]",
+                    smf_ue->supi, sess->psi, sbi_message->h.service.name);
+            OGS_FSM_TRAN(s, smf_gsm_state_exception);
+        END
+        break;
+
+    default:
+        ogs_error("Unknown event [%s]", smf_event_get_name(e));
+        OGS_FSM_TRAN(s, smf_gsm_state_exception);
     }
 }
 

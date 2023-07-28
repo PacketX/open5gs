@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2023 by sysmocom - s.f.m.c. GmbH <info@sysmocom.de>
  *
  * This file is part of Open5GS.
  *
@@ -17,24 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SMF_NPCF_HANDLER_H
-#define SMF_NPCF_HANDLER_H
+#ifndef MME_GN_BUILD_H
+#define MME_GN_BUILD_H
+
+#include "ogs-nas-eps.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "context.h"
-
-bool smf_npcf_smpolicycontrol_handle_create(
-        smf_sess_t *sess, int state, ogs_sbi_message_t *recvmsg);
-bool smf_npcf_smpolicycontrol_handle_update_notify(
-        smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *recvmsg);
-bool smf_npcf_smpolicycontrol_handle_terminate_notify(
-        smf_sess_t *sess, ogs_sbi_stream_t *stream, ogs_sbi_message_t *recvmsg);
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SMF_NPCF_HANDLER_H */
+ogs_pkbuf_t *mme_gn_build_ran_information_relay(
+                uint8_t type, const uint8_t *buf, size_t len,
+                const ogs_nas_rai_t *rai, uint16_t cell_id);
+
+#endif /* MME_S11_BUILD_H */
