@@ -277,6 +277,7 @@ typedef struct mme_enb_s {
     ogs_fsm_t       sm;         /* A state machine */
 
     uint32_t        enb_id;     /* eNB_ID received from eNB */
+    ogs_plmn_id_t   plmn_id;    /* eNB PLMN-ID received from eNB */
     ogs_sctp_sock_t sctp;       /* SCTP socket */
 
     struct {
@@ -676,14 +677,14 @@ struct mme_ue_s {
     do { \
         mme_ue_t *mme_ue = NULL; \
         ogs_assert(__sESS); \
-        mme_ue = __sESS->mme_ue; \
+        mme_ue = (__sESS)->mme_ue; \
         ogs_assert(mme_ue); \
         ogs_info("Removed Session: UE IMSI:[%s] APN:[%s]", \
                 mme_ue->imsi_bcd, \
-                sess->session ? sess->session->name : "Unknown"); \
+                (__sESS)->session ? (__sESS)->session->name : "Unknown"); \
         if (mme_sess_count(mme_ue) == 1) /* Last Session */ \
             CLEAR_SESSION_CONTEXT(mme_ue); \
-        mme_sess_remove(sess); \
+        mme_sess_remove(__sESS); \
     } while(0)
 
 #define ACTIVE_EPS_BEARERS_IS_AVAIABLE(__mME) \

@@ -34,6 +34,33 @@
 #include "mme-path.h"
 #include "mme-sm.h"
 
+static bool maximum_number_of_enbs_is_reached(void)
+{
+    mme_enb_t *enb = NULL, *next_enb = NULL;
+    int number_of_enbs_online = 0;
+
+    ogs_list_for_each_safe(&mme_self()->enb_list, next_enb, enb) {
+        if (enb->state.s1_setup_success) {
+            number_of_enbs_online++;
+        }
+    }
+
+    return number_of_enbs_online >= ogs_app()->max.peer;
+}
+
+static bool enb_plmn_id_is_foreign(mme_enb_t *enb)
+{
+    int i;
+
+    for (i = 0; i < enb->num_of_supported_ta_list; i++) {
+        if (memcmp(&enb->plmn_id, &enb->supported_ta_list[i].plmn_id,
+                    OGS_PLMN_ID_LEN) == 0)
+            return false;
+    }
+
+    return true;
+}
+
 static bool served_tai_is_found(mme_enb_t *enb)
 {
     int i;
@@ -49,20 +76,6 @@ static bool served_tai_is_found(mme_enb_t *enb)
     }
 
     return false;
-}
-
-static bool maximum_number_of_enbs_is_reached(void)
-{
-    mme_enb_t *enb = NULL, *next_enb = NULL;
-    int number_of_enbs_online = 0;
-
-    ogs_list_for_each_safe(&mme_self()->enb_list, next_enb, enb) {
-        if (enb->state.s1_setup_success) {
-            number_of_enbs_online++;
-        }
-    }
-
-    return number_of_enbs_online >= ogs_app()->max.peer;
 }
 
 void s1ap_handle_s1_setup_request(mme_enb_t *enb, ogs_s1ap_message_t *message)
@@ -110,17 +123,41 @@ void s1ap_handle_s1_setup_request(mme_enb_t *enb, ogs_s1ap_message_t *message)
         }
     }
 
-    ogs_assert(Global_ENB_ID);
+    if (!Global_ENB_ID) {
+        ogs_error("No Global_ENB_ID");
+        group = S1AP_Cause_PR_misc;
+        cause = S1AP_CauseProtocol_semantic_error;
+
+        r = s1ap_send_s1_setup_failure(enb, group, cause);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
+        return;
+    }
+
+    if (!SupportedTAs) {
+        ogs_error("No SupportedTAs");
+        group = S1AP_Cause_PR_misc;
+        cause = S1AP_CauseProtocol_semantic_error;
+
+        r = s1ap_send_s1_setup_failure(enb, group, cause);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
+        return;
+    }
 
     ogs_s1ap_ENB_ID_to_uint32(&Global_ENB_ID->eNB_ID, &enb_id);
     ogs_debug("    IP[%s] ENB_ID[%d]", OGS_ADDR(enb->sctp.addr, buf), enb_id);
 
+    mme_enb_set_enb_id(enb, enb_id);
+
+    memcpy(&enb->plmn_id,
+            Global_ENB_ID->pLMNidentity.buf, sizeof(enb->plmn_id));
+    ogs_debug("    PLMN_ID[MCC:%d MNC:%d]",
+            ogs_plmn_id_mcc(&enb->plmn_id), ogs_plmn_id_mnc(&enb->plmn_id));
+
     if (PagingDRX)
         ogs_debug("    PagingDRX[%ld]", *PagingDRX);
 
-    mme_enb_set_enb_id(enb, enb_id);
-
-    ogs_assert(SupportedTAs);
     /* Parse Supported TA */
     enb->num_of_supported_ta_list = 0;
     for (i = 0; i < SupportedTAs->list.count; i++) {
@@ -169,11 +206,21 @@ void s1ap_handle_s1_setup_request(mme_enb_t *enb, ogs_s1ap_message_t *message)
         return;
     }
 
-    if (enb->num_of_supported_ta_list == 0) {
+    /*
+     * TS36.413
+     * Section 8.7.3.4 Abnormal Conditions
+     *
+     * If the eNB initiates the procedure by sending a S1 SETUP REQUEST
+     * message including the PLMN Identity IEs and none of the PLMNs
+     * provided by the eNB is identified by the MME, then the MME shall
+     * reject the eNB S1 Setup Request procedure with the appropriate cause
+     * value, e.g., “Unknown PLMN”.
+     */
+    if (enb_plmn_id_is_foreign(enb)) {
         ogs_warn("S1-Setup failure:");
-        ogs_warn("    No supported TA exist in S1-Setup request");
+        ogs_warn("    Global-ENB-ID PLMN-ID is foreign");
         group = S1AP_Cause_PR_misc;
-        cause = S1AP_CauseMisc_unspecified;
+        cause = S1AP_CauseMisc_unknown_PLMN;
 
         r = s1ap_send_s1_setup_failure(enb, group, cause);
         ogs_expect(r == OGS_OK);
@@ -1665,6 +1712,58 @@ void s1ap_handle_ue_context_release_action(enb_ue_t *enb_ue)
         if (OGS_FSM_CHECK(&mme_ue->sm, emm_state_registered)) {
             ogs_debug("Mobile Reachable timer started for IMSI[%s]",
                 mme_ue->imsi_bcd);
+        /*
+         * TS 24.301
+         * Section 5.3.5
+         * Handling of the periodic tracking area update timer and
+         * mobile reachable timer (S1 mode only)
+         *
+         * The periodic tracking area updating procedure is used to
+         * periodically notify the availability of the UE to the network.
+         * The procedure is controlled in the UE by timer T3412.
+         * The value of timer T3412 is sent by the network to the UE
+         * in the ATTACH ACCEPT message and can be sent in the TRACKING AREA
+         * UPDATE ACCEPT message. The UE shall apply this value in all tracking
+         * areas of the list of tracking areas assigned to the UE
+         * until a new value is received.
+         *
+         * If timer T3412 received by the UE in an ATTACH ACCEPT or TRACKING
+         * AREA UPDATE ACCEPT message contains an indication that the timer is
+         * deactivated or the timer value is zero, then timer T3412 is
+         * deactivated and the UE shall not perform the periodic tracking area
+         * updating procedure.
+         *
+         * Timer T3412 is reset and started with its initial value,
+         * when the UE changes from EMM-CONNECTED to EMM-IDLE mode.
+         *
+         * Timer T3412 is stopped when the UE enters EMM-CONNECTED mode or
+         * the EMM-DEREGISTERED state. If the UE is attached for emergency
+         * bearer services, and timer T3412 expires, the UE shall not initiate
+         * a periodic tracking area updating procedure, but shall locally detach
+         * from the network. When the UE is camping on a suitable cell, it may
+         * re-attach to regain normal service.
+         *
+         * When a UE is not attached for emergency bearer services, and timer
+         * T3412 expires, the periodic tracking area updating procedure shall
+         * be started and the timer shall be set to its initial value
+         * for the next start.
+         *
+         * If the UE is not attached for emergency bearer services, the mobile
+         * reachable timer shall be longer than T3412. In this case, by default,
+         * the mobile reachable timer is 4 minutes greater than timer T3412.
+         *
+         * Upon expiry of the mobile reachable timer the network shall start
+         * the implicit detach timer. The value of the implicit detach timer is
+         * network dependent. If ISR is activated, the default value of
+         * the implicit detach timer is 4 minutes greater than timer T3423.
+         * If the implicit detach timer expires before the UE contacts
+         * the network, the network shall implicitly detach the UE. If the MME
+         * includes timer T3346 in the TRACKING AREA UPDATE REJECT message or
+         * the SERVICE REJECT message and timer T3346 is greater than timer
+         * T3412, the MME sets the mobile reachable timer and the implicit
+         * detach timer such that the sum of the timer values is greater than
+         * timer T3346.
+         */
             ogs_timer_start(mme_ue->t_mobile_reachable.timer,
                 ogs_time_from_sec(mme_self()->time.t3412.value + 240));
         }
