@@ -580,6 +580,7 @@ int ogs_sbi_context_parse_config(
 
                         if (addr == NULL) continue;
 
+                        ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
                         client = ogs_sbi_client_add(
                                     ogs_sbi_client_default_scheme(), addr);
                         ogs_assert(client);
@@ -683,6 +684,7 @@ int ogs_sbi_context_parse_config(
 
                         if (addr == NULL) continue;
 
+                        ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
                         client = ogs_sbi_client_add(
                                     ogs_sbi_client_default_scheme(), addr);
                         ogs_assert(client);
@@ -805,8 +807,6 @@ ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_add(void)
     ogs_assert(nf_instance);
     memset(nf_instance, 0, sizeof(ogs_sbi_nf_instance_t));
 
-    ogs_debug("ogs_sbi_nf_instance_add()");
-
     OGS_OBJECT_REF(nf_instance);
 
     nf_instance->time.heartbeat_interval =
@@ -817,6 +817,9 @@ ogs_sbi_nf_instance_t *ogs_sbi_nf_instance_add(void)
     nf_instance->load = OGS_SBI_DEFAULT_LOAD;
 
     ogs_list_add(&ogs_sbi_self()->nf_instance_list, nf_instance);
+
+    ogs_debug("[%s:%d] NFInstance added with Ref",
+            nf_instance->id, nf_instance->reference_count);
 
     return nf_instance;
 }
@@ -913,12 +916,16 @@ void ogs_sbi_nf_instance_remove(ogs_sbi_nf_instance_t *nf_instance)
 {
     ogs_assert(nf_instance);
 
-    ogs_debug("ogs_sbi_nf_instance_remove()");
+    ogs_debug("[%s:%d] NFInstance UnRef",
+            nf_instance->id, nf_instance->reference_count);
 
     if (OGS_OBJECT_IS_REF(nf_instance)) {
         OGS_OBJECT_UNREF(nf_instance);
         return;
     }
+
+    ogs_debug("[%s:%d] NFInstance removed",
+            nf_instance->id, nf_instance->reference_count);
 
     ogs_list_remove(&ogs_sbi_self()->nf_instance_list, nf_instance);
 
@@ -1316,6 +1323,62 @@ ogs_sbi_nf_info_t *ogs_sbi_nf_info_find(
     return NULL;
 }
 
+bool ogs_sbi_check_smf_info_slice(
+        ogs_sbi_smf_info_t *smf_info, ogs_s_nssai_t *s_nssai, char *dnn)
+{
+    int i, j;
+
+    ogs_assert(smf_info);
+    ogs_assert(s_nssai);
+    ogs_assert(dnn);
+
+    for (i = 0; i < smf_info->num_of_slice; i++) {
+        if (s_nssai->sst == smf_info->slice[i].s_nssai.sst &&
+            s_nssai->sd.v == smf_info->slice[i].s_nssai.sd.v) {
+
+            for (j = 0; j < smf_info->slice[i].num_of_dnn; j++) {
+                if (ogs_strcasecmp(dnn, smf_info->slice[i].dnn[j]) == 0)
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+bool ogs_sbi_check_smf_info_tai(
+        ogs_sbi_smf_info_t *smf_info, ogs_5gs_tai_t *tai)
+{
+    int i, j;
+
+    ogs_assert(smf_info);
+    ogs_assert(tai);
+
+    if (smf_info->num_of_nr_tai == 0 && smf_info->num_of_nr_tai_range == 0)
+        return true;
+
+    for (i = 0; i < smf_info->num_of_nr_tai; i++) {
+        if (memcmp(&tai->plmn_id,
+                &smf_info->nr_tai[i].plmn_id, OGS_PLMN_ID_LEN) == 0) {
+            if (tai->tac.v == smf_info->nr_tai[i].tac.v)
+                return true;
+        }
+    }
+
+    for (i = 0; i < smf_info->num_of_nr_tai_range; i++) {
+        if (memcmp(&tai->plmn_id,
+                &smf_info->nr_tai_range[i].plmn_id, OGS_PLMN_ID_LEN) == 0) {
+            for (j = 0; j < smf_info->nr_tai_range[i].num_of_tac_range; j++) {
+                if (tai->tac.v >= smf_info->nr_tai_range[i].start[j].v &&
+                    tai->tac.v <= smf_info->nr_tai_range[i].end[j].v) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 void ogs_sbi_nf_instance_build_default(ogs_sbi_nf_instance_t *nf_instance)
 {
     ogs_sbi_server_t *server = NULL;
@@ -1463,8 +1526,15 @@ static ogs_sbi_client_t *find_client_by_fqdn(
 
     client = ogs_sbi_client_find(scheme, addr);
     if (!client) {
+        ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
         client = ogs_sbi_client_add(scheme, addr);
-        ogs_assert(client);
+        if (!client) {
+            char buf[OGS_ADDRSTRLEN];
+            ogs_error("%s: ogs_sbi_client_add() failed [%s]:%d",
+                    OGS_FUNC, OGS_ADDR(addr, buf), OGS_PORT(addr));
+            ogs_freeaddrinfo(addr);
+            return NULL;
+        }
     }
 
     ogs_freeaddrinfo(addr);
@@ -1492,8 +1562,14 @@ static ogs_sbi_client_t *nf_instance_find_client(
         if (addr) {
             client = ogs_sbi_client_find(scheme, addr);
             if (!client) {
+                ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
                 client = ogs_sbi_client_add(scheme, addr);
-                ogs_assert(client);
+                if (!client) {
+                    char buf[OGS_ADDRSTRLEN];
+                    ogs_error("%s: ogs_sbi_client_add() failed [%s]:%d",
+                            OGS_FUNC, OGS_ADDR(addr, buf), OGS_PORT(addr));
+                    return NULL;
+                }
             }
         }
     }
@@ -1522,12 +1598,19 @@ static void nf_service_associate_client(ogs_sbi_nf_service_t *nf_service)
         if (addr) {
             client = ogs_sbi_client_find(nf_service->scheme, addr);
             if (!client) {
+                ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
                 client = ogs_sbi_client_add(nf_service->scheme, addr);
-                ogs_assert(client);
+                if (!client) {
+                    char buf[OGS_ADDRSTRLEN];
+                    ogs_error("%s: ogs_sbi_client_add() failed [%s]:%d",
+                            OGS_FUNC, OGS_ADDR(addr, buf), OGS_PORT(addr));
+                }
             }
         }
     }
 
+    ogs_debug("[%s] NFService associated [%s]",
+            nf_service->name, nf_service->id);
     if (client)
         OGS_SBI_SETUP_CLIENT(nf_service, client);
 }
@@ -1547,6 +1630,8 @@ bool ogs_sbi_discovery_option_is_matched(
         OpenAPI_nf_type_e requester_nf_type,
         ogs_sbi_discovery_option_t *discovery_option)
 {
+    ogs_sbi_nf_info_t *nf_info = NULL;
+
     ogs_assert(nf_instance);
     ogs_assert(requester_nf_type);
     ogs_assert(discovery_option);
@@ -1579,6 +1664,30 @@ bool ogs_sbi_discovery_option_is_matched(
             if (exist == true) break;
         }
         if (exist == false) return false;
+    }
+
+    ogs_list_for_each(&nf_instance->nf_info_list, nf_info) {
+        if (nf_instance->nf_type != nf_info->nf_type) {
+            ogs_error("Invalid NF-Type [%d:%d]",
+                    nf_instance->nf_type, nf_info->nf_type);
+            return false;
+        }
+
+        switch (nf_info->nf_type) {
+        case OpenAPI_nf_type_SMF:
+            if (discovery_option->num_of_snssais && discovery_option->dnn &&
+                ogs_sbi_check_smf_info_slice(&nf_info->smf,
+                    &discovery_option->snssais[0],
+                    discovery_option->dnn) == false)
+                return false;
+            if (discovery_option->num_of_tai &&
+                ogs_sbi_check_smf_info_tai(&nf_info->smf,
+                    &discovery_option->tai[0]) == false)
+                return false;
+            break;
+        default:
+            break;
+        }
     }
 
     return true;
@@ -1861,15 +1970,21 @@ ogs_sbi_subscription_spec_t *ogs_sbi_subscription_spec_add(
 {
     ogs_sbi_subscription_spec_t *subscription_spec = NULL;
 
-    ogs_assert(nf_type);
+    /* Issue #2630 : The format of subscrCond is invalid. Must be 'oneOf'. */
+    ogs_assert(!nf_type || !service_name);
 
     ogs_pool_alloc(&subscription_spec_pool, &subscription_spec);
     ogs_assert(subscription_spec);
     memset(subscription_spec, 0, sizeof(ogs_sbi_subscription_spec_t));
 
-    subscription_spec->subscr_cond.nf_type = nf_type;
-    if (service_name)
+    if (nf_type)
+        subscription_spec->subscr_cond.nf_type = nf_type;
+    else if (service_name)
         subscription_spec->subscr_cond.service_name = ogs_strdup(service_name);
+    else {
+        ogs_fatal("SubscrCond must be 'oneOf'.");
+        ogs_assert_if_reached();
+    }
 
     ogs_list_add(&ogs_sbi_self()->subscription_spec_list, subscription_spec);
 

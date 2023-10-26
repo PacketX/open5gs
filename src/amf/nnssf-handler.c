@@ -29,6 +29,7 @@ int amf_nnssf_nsselection_handle_get(
     OpenAPI_uri_scheme_e scheme = OpenAPI_uri_scheme_NULL;
     ogs_sbi_client_t *client = NULL, *scp_client = NULL;
     ogs_sockaddr_t *addr = NULL;
+    ogs_sbi_discovery_option_t *discovery_option = NULL;
 
     OpenAPI_authorized_network_slice_info_t *AuthorizedNetworkSliceInfo = NULL;
     OpenAPI_nsi_information_t *NsiInformation = NULL;
@@ -87,6 +88,13 @@ int amf_nnssf_nsselection_handle_get(
         return OGS_ERROR;
     }
 
+    discovery_option = ogs_sbi_discovery_option_new();
+    ogs_assert(discovery_option);
+
+    ogs_sbi_discovery_option_add_snssais(discovery_option, &sess->s_nssai);
+    ogs_sbi_discovery_option_set_dnn(discovery_option, sess->dnn);
+    ogs_sbi_discovery_option_add_tai(discovery_option, &amf_ue->nr_tai);
+
     if (sess->nssf.nrf.id)
         ogs_free(sess->nssf.nrf.id);
     sess->nssf.nrf.id = ogs_strdup(NsiInformation->nrf_id);
@@ -101,7 +109,7 @@ int amf_nnssf_nsselection_handle_get(
         param.nrf_uri.nrf.id = sess->nssf.nrf.id;
 
         r = amf_sess_sbi_discover_and_send(
-                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, discovery_option,
                 amf_nsmf_pdusession_build_create_sm_context,
                 sess, AMF_CREATE_SM_CONTEXT_NO_STATE, &param);
         ogs_expect(r == OGS_OK);
@@ -115,20 +123,33 @@ int amf_nnssf_nsselection_handle_get(
                     amf_ue, OGS_SBI_HTTP_STATUS_INTERNAL_SERVER_ERROR);
             ogs_expect(r == OGS_OK);
             ogs_assert(r != OGS_ERROR);
-            return OGS_ERROR;;
+
+            ogs_sbi_discovery_option_free(discovery_option);
+
+            return OGS_ERROR;
         }
 
         client = ogs_sbi_client_find(scheme, addr);
         if (!client) {
+            ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
             client = ogs_sbi_client_add(scheme, addr);
-            ogs_assert(client);
+            if (!client) {
+                char buf[OGS_ADDRSTRLEN];
+                ogs_error("%s: ogs_sbi_client_add() failed [%s]:%d",
+                        OGS_FUNC, OGS_ADDR(addr, buf), OGS_PORT(addr));
+
+                ogs_sbi_discovery_option_free(discovery_option);
+                ogs_freeaddrinfo(addr);
+
+                return OGS_ERROR;
+            }
         }
 
         OGS_SBI_SETUP_CLIENT(&sess->nssf.nrf, client);
         ogs_freeaddrinfo(addr);
 
         r = amf_sess_sbi_discover_by_nsi(
-                sess, OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL);
+                sess, OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, discovery_option);
         ogs_expect(r == OGS_OK);
         ogs_assert(r != OGS_ERROR);
     }

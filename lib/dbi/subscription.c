@@ -194,7 +194,7 @@ int ogs_dbi_update_imeisv(char *supi, char *imeisv)
     return rv;
 }
 
-int ogs_dbi_update_mme(char *supi, char *mme_host, char *mme_realm, 
+int ogs_dbi_update_mme(char *supi, char *mme_host, char *mme_realm,
     bool purge_flag)
 {
     int rv = OGS_OK;
@@ -273,7 +273,7 @@ int ogs_dbi_increment_sqn(char *supi)
 
     update = BCON_NEW("$bit",
             "{",
-                "security.sqn", 
+                "security.sqn",
                 "{", "and", BCON_INT64(max_sqn), "}",
             "}");
     if (!mongoc_collection_update(ogs_mongoc()->collection.subscriber,
@@ -392,6 +392,10 @@ int ogs_dbi_subscription_data(char *supi,
         } else if (!strcmp(key, "subscriber_status") &&
             BSON_ITER_HOLDS_INT32(&iter)) {
             subscription_data->subscriber_status =
+                bson_iter_int32(&iter);
+        } else if (!strcmp(key, "operator_determined_barring") &&
+            BSON_ITER_HOLDS_INT32(&iter)) {
+            subscription_data->operator_determined_barring =
                 bson_iter_int32(&iter);
         } else if (!strcmp(key, "network_access_mode") &&
             BSON_ITER_HOLDS_INT32(&iter)) {

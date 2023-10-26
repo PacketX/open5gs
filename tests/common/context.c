@@ -127,7 +127,8 @@ static int test_context_validation(void)
 
     if (test_self()->nr_served_tai[index].list2.num) {
         memcpy(&test_self()->nr_tai,
-            &test_self()->nr_served_tai[index].list2.tai[0], sizeof(ogs_5gs_tai_t));
+            &test_self()->nr_served_tai[index].list2.tai[0],
+            sizeof(ogs_5gs_tai_t));
     } else if (test_self()->nr_served_tai[index].list1.tai[0].num) {
         test_self()->nr_tai.tac =
             test_self()->nr_served_tai[index].list1.tai[0].tac;
@@ -1510,6 +1511,7 @@ bson_t *test_db_new_simple(test_ue_t *test_ue)
             "subscribed_rau_tau_timer", BCON_INT32(12),
             "network_access_mode", BCON_INT32(0),
             "subscriber_status", BCON_INT32(0),
+            "operator_determined_barring", BCON_INT32(0),
             "access_restriction_data", BCON_INT32(32)
           );
     ogs_assert(doc);
@@ -1614,6 +1616,7 @@ bson_t *test_db_new_qos_flow(test_ue_t *test_ue)
             "subscribed_rau_tau_timer", BCON_INT32(12),
             "network_access_mode", BCON_INT32(0),
             "subscriber_status", BCON_INT32(0),
+            "operator_determined_barring", BCON_INT32(0),
             "access_restriction_data", BCON_INT32(32)
           );
     ogs_assert(doc);
@@ -1742,6 +1745,7 @@ bson_t *test_db_new_session(test_ue_t *test_ue)
             "subscribed_rau_tau_timer", BCON_INT32(12),
             "network_access_mode", BCON_INT32(0),
             "subscriber_status", BCON_INT32(0),
+            "operator_determined_barring", BCON_INT32(0),
             "access_restriction_data", BCON_INT32(32)
           );
     ogs_assert(doc);
@@ -1892,6 +1896,7 @@ bson_t *test_db_new_ims(test_ue_t *test_ue)
             "subscribed_rau_tau_timer", BCON_INT32(12),
             "network_access_mode", BCON_INT32(0),
             "subscriber_status", BCON_INT32(0),
+            "operator_determined_barring", BCON_INT32(0),
             "access_restriction_data", BCON_INT32(32)
           );
     ogs_assert(doc);
@@ -2269,6 +2274,7 @@ bson_t *test_db_new_slice_with_same_dnn(test_ue_t *test_ue)
             "subscribed_rau_tau_timer", BCON_INT32(12),
             "network_access_mode", BCON_INT32(0),
             "subscriber_status", BCON_INT32(0),
+            "operator_determined_barring", BCON_INT32(0),
             "access_restriction_data", BCON_INT32(32)
           );
     ogs_assert(doc);
@@ -2646,6 +2652,7 @@ bson_t *test_db_new_slice_with_different_dnn(test_ue_t *test_ue)
             "subscribed_rau_tau_timer", BCON_INT32(12),
             "network_access_mode", BCON_INT32(0),
             "subscriber_status", BCON_INT32(0),
+            "operator_determined_barring", BCON_INT32(0),
             "access_restriction_data", BCON_INT32(32)
           );
     ogs_assert(doc);
@@ -2800,6 +2807,7 @@ bson_t *test_db_new_non3gpp(test_ue_t *test_ue)
             "subscribed_rau_tau_timer", BCON_INT32(12),
             "network_access_mode", BCON_INT32(0),
             "subscriber_status", BCON_INT32(0),
+            "operator_determined_barring", BCON_INT32(0),
             "access_restriction_data", BCON_INT32(32)
           );
     ogs_assert(doc);

@@ -250,8 +250,15 @@ bool smf_nsmf_handle_create_sm_context(
 
     client = ogs_sbi_client_find(scheme, addr);
     if (!client) {
+        ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
         client = ogs_sbi_client_add(scheme, addr);
-        ogs_assert(client);
+        if (!client) {
+            char buf[OGS_ADDRSTRLEN];
+            ogs_error("%s: ogs_sbi_client_add() failed [%s]:%d",
+                    OGS_FUNC, OGS_ADDR(addr, buf), OGS_PORT(addr));
+            ogs_freeaddrinfo(addr);
+            return false;
+        }
     }
     OGS_SBI_SETUP_CLIENT(&sess->namf, client);
     ogs_freeaddrinfo(addr);
@@ -682,12 +689,14 @@ bool smf_nsmf_handle_update_sm_context(
             ogs_expect(r == OGS_OK);
             ogs_assert(r != OGS_ERROR);
         } else {
-            ogs_error("[%s:%d] No PolicyAssociationId. Forcibly remove SESSION",
+            ogs_warn("[%s:%d] No PolicyAssociationId. Forcibly remove SESSION",
                     smf_ue->supi, sess->psi);
-            smf_sbi_send_sm_context_update_error_log(
-                    stream, OGS_SBI_HTTP_STATUS_NOT_FOUND,
-                    "No PolicyAssociationId", NULL);
-            SMF_SESS_CLEAR(sess);
+            r = smf_sbi_discover_and_send(
+                    OGS_SBI_SERVICE_TYPE_NUDM_UECM, NULL,
+                    smf_nudm_uecm_build_deregistration, sess, stream,
+                    SMF_UECM_STATE_DEREGISTERED_BY_AMF, NULL);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
         }
     } else if (SmContextUpdateData->serving_nf_id) {
         ogs_debug("Old serving_nf_id: %s, new serving_nf_id: %s",
@@ -779,13 +788,14 @@ bool smf_nsmf_handle_release_sm_context(
         ogs_expect(r == OGS_OK);
         ogs_assert(r != OGS_ERROR);
     } else {
-        ogs_error("[%s:%d] No PolicyAssociationId. Forcibly remove SESSION",
+        ogs_warn("[%s:%d] No PolicyAssociationId. Forcibly remove SESSION",
                 smf_ue->supi, sess->psi);
-        ogs_assert(true ==
-            ogs_sbi_server_send_error(
-                stream, OGS_SBI_HTTP_STATUS_NOT_FOUND,
-                NULL, "No PolicyAssociationId", NULL));
-        SMF_SESS_CLEAR(sess);
+        r = smf_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NUDM_UECM, NULL,
+                smf_nudm_uecm_build_deregistration, sess, stream,
+                SMF_UECM_STATE_DEREGISTERED_BY_AMF, NULL);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
     }
 
     return true;
